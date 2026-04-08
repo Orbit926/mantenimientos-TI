@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page { size: letter; margin: 1.5cm; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #1a1a1a; }
+
+    h1 { font-size: 14px; text-align: center; text-transform: uppercase; margin-bottom: 4px; }
+    .subtitulo { text-align: center; font-size: 10px; color: #555; margin-bottom: 16px; }
+
+    h2 {
+      font-size: 10px;
+      text-transform: uppercase;
+      background-color: #1e3a5f;
+      color: #fff;
+      padding: 4px 8px;
+      margin: 14px 0 4px 0;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+    td, th { border: 1px solid #ccc; padding: 4px 8px; vertical-align: top; }
+    th { background-color: #f0f4f8; font-weight: bold; width: 38%; }
+
+    .check-si { color: #1a7a1a; font-weight: bold; }
+    .check-no { color: #b00020; font-weight: bold; }
+
+    .firmas-tabla { width: 100%; margin-top: 20px; }
+    .firma-celda { width: 50%; text-align: center; padding: 12px; border: 1px solid #ccc; vertical-align: top; }
+    .firma-img { max-width: 180px; max-height: 70px; }
+    .firma-linea { border-top: 1px solid #333; margin: 8px auto; width: 80%; }
+    .firma-nombre { font-size: 10px; font-weight: bold; }
+    .firma-cargo { font-size: 9px; color: #555; }
+
+    .folio { text-align: right; font-size: 9px; color: #888; margin-bottom: 4px; }
+    .riesgo-box { background-color: #fff3cd; border: 1px solid #ffc107; padding: 6px; }
+  </style>
+</head>
+<body>
+
+  <div class="folio">Folio: #{{ mantenimiento.id }} &nbsp;|&nbsp; Generado: {% now "d/m/Y H:i" %}</div>
+  <h1>Reporte de Mantenimiento de Equipo de Cómputo</h1>
+  <div class="subtitulo">Documento de evidencia técnica — Uso interno</div>
+
+  <h2>Información General</h2>
+  <table>
+    <tr><th>Departamento / Área</th><td>{{ mantenimiento.departamento_area }}</td></tr>
+    <tr><th>Responsable del Área</th><td>{{ mantenimiento.responsable_area }}</td></tr>
+    <tr><th>Técnico(s) Responsable(s)</th><td>{{ mantenimiento.tecnico_nombre }}</td></tr>
+    <tr><th>Fecha de Ejecución</th><td>{{ mantenimiento.fecha_ejecucion }}</td></tr>
+    <tr><th>Hora de Inicio</th><td>{{ mantenimiento.hora_inicio }}</td></tr>
+    <tr><th>Hora de Término</th><td>{{ mantenimiento.hora_fin|default:"—" }}</td></tr>
+  </table>
+
+  <h2>Equipo Intervenido</h2>
+  <table>
+    <tr><th>Código Interno</th><td>{{ equipo.codigo_interno }}</td></tr>
+    <tr><th>Marca / Modelo</th><td>{{ equipo.marca }} {{ equipo.modelo }}</td></tr>
+    <tr><th>Número de Serie</th><td>{{ equipo.numero_serie|default:"—" }}</td></tr>
+    <tr><th>Tipo de Equipo</th><td>{{ equipo.get_tipo_equipo_display }}</td></tr>
+    <tr><th>Ubicación</th><td>{{ equipo.ubicacion }}</td></tr>
+    <tr><th>Colaborador Asignado</th><td>{{ equipo.colaborador_nombre }}</td></tr>
+    <tr><th>Puesto</th><td>{{ equipo.colaborador_puesto|default:"—" }}</td></tr>
+  </table>
+
+  <h2>Actividades Realizadas</h2>
+  <table>
+    <tr><td>{{ mantenimiento.actividades_realizadas|default:"—"|linebreaksbr }}</td></tr>
+  </table>
+
+  <h2>Materiales Utilizados</h2>
+  <table>
+    <tr><td>{{ mantenimiento.materiales_utilizados|default:"—"|linebreaksbr }}</td></tr>
+  </table>
+
+  <h2>Checklist Técnico</h2>
+  <table>
+    <tr>
+      <th style="width:50%;">Actividad</th>
+      <th style="width:15%; text-align:center;">Realizado</th>
+      <th>Observaciones</th>
+    </tr>
+    {% for resp in checklist %}
+    <tr>
+      <td>{{ resp.checklist_item.nombre }}</td>
+      <td style="text-align:center;">
+        {% if resp.realizado %}
+          <span class="check-si">&#10003; Sí</span>
+        {% else %}
+          <span class="check-no">&#10007; No</span>
+        {% endif %}
+      </td>
+      <td>{{ resp.observacion|default:"—" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="3" style="text-align:center; color:#888;">Sin checklist registrado</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>Estado del Equipo Post-Mantenimiento</h2>
+  <table>
+    <tr><th>Estado</th><td>{{ mantenimiento.get_estado_equipo_post_display|default:"—" }}</td></tr>
+    <tr><th>Observaciones del Técnico</th><td>{{ mantenimiento.observaciones_tecnico|default:"—"|linebreaksbr }}</td></tr>
+    <tr><th>Fecha Sugerida Próximo Mantenimiento</th><td>{{ mantenimiento.fecha_sugerida_proximo_mantenimiento|default:"—" }}</td></tr>
+  </table>
+
+  {% if mantenimiento.riesgo_presentado %}
+  <h2>Riesgos y Acciones Tomadas</h2>
+  <div class="riesgo-box">
+    <table style="border:none;">
+      <tr><th style="border:none;">Descripción del Riesgo</th><td style="border:none;">{{ mantenimiento.descripcion_riesgo|default:"—"|linebreaksbr }}</td></tr>
+      <tr><th style="border:none;">Acciones Tomadas</th><td style="border:none;">{{ mantenimiento.acciones_tomadas|default:"—"|linebreaksbr }}</td></tr>
+    </table>
+  </div>
+  {% endif %}
+
+  <h2>Conformidad y Firmas</h2>
+  <table class="firmas-tabla">
+    <tr>
+      <td class="firma-celda">
+        <p><strong>Firma del Técnico de TI</strong></p>
+        {% if firma_tecnico_b64 %}
+          <img class="firma-img" src="{{ firma_tecnico_b64 }}" />
+        {% else %}
+          <div style="height:60px;"></div>
+        {% endif %}
+        <div class="firma-linea"></div>
+        <div class="firma-nombre">{{ firma_tecnico.nombre_firmante|default:"" }}</div>
+        <div class="firma-cargo">{{ firma_tecnico.cargo_firmante|default:"Técnico de TI" }}</div>
+      </td>
+      <td class="firma-celda">
+        <p><strong>Firma de Conformidad del Usuario</strong></p>
+        {% if firma_usuario_b64 %}
+          <img class="firma-img" src="{{ firma_usuario_b64 }}" />
+        {% else %}
+          <div style="height:60px;"></div>
+        {% endif %}
+        <div class="firma-linea"></div>
+        <div class="firma-nombre">{{ firma_usuario.nombre_firmante|default:"" }}</div>
+        <div class="firma-cargo">{{ firma_usuario.cargo_firmante|default:"" }}</div>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

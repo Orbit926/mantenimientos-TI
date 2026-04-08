@@ -1,0 +1,12 @@
+[
+  {"model": "mantenimientos.checklistitem", "pk": 1, "fields": {"nombre": "Revisar bocinas", "categoria": "Hardware", "activo": true, "orden": 10}},
+  {"model": "mantenimientos.checklistitem", "pk": 2, "fields": {"nombre": "Revisar monitor", "categoria": "Hardware", "activo": true, "orden": 20}},
+  {"model": "mantenimientos.checklistitem", "pk": 3, "fields": {"nombre": "Revisar teclado y panel táctil", "categoria": "Hardware", "activo": true, "orden": 30}},
+  {"model": "mantenimientos.checklistitem", "pk": 4, "fields": {"nombre": "Revisar cámara y micrófono", "categoria": "Hardware", "activo": true, "orden": 40}},
+  {"model": "mantenimientos.checklistitem", "pk": 5, "fields": {"nombre": "Revisar cargador", "categoria": "Hardware", "activo": true, "orden": 50}},
+  {"model": "mantenimientos.checklistitem", "pk": 6, "fields": {"nombre": "Revisar batería", "categoria": "Hardware", "activo": true, "orden": 60}},
+  {"model": "mantenimientos.checklistitem", "pk": 7, "fields": {"nombre": "Activar punto de restauración", "categoria": "Software", "activo": true, "orden": 70}},
+  {"model": "mantenimientos.checklistitem", "pk": 8, "fields": {"nombre": "Instalar actualizaciones del sistema", "categoria": "Software", "activo": true, "orden": 80}},
+  {"model": "mantenimientos.checklistitem", "pk": 9, "fields": {"nombre": "Revisar estado del disco", "categoria": "Software", "activo": true, "orden": 90}},
+  {"model": "mantenimientos.checklistitem", "pk": 10, "fields": {"nombre": "Limpieza física del equipo", "categoria": "Mantenimiento físico", "activo": true, "orden": 100}}
+]

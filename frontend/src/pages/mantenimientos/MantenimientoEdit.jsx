@@ -1,0 +1,184 @@
+import { useState, useEffect } from 'react';
+import {
+  Box,
+  Grid,
+  Button,
+  TextField,
+  MenuItem,
+  Alert,
+  CircularProgress,
+  FormControlLabel,
+  Switch,
+} from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save';
+import { useParams, useNavigate } from 'react-router-dom';
+import PageHeader from '../../components/common/PageHeader';
+import SectionCard from '../../components/common/SectionCard';
+import { mantenimientosService } from '../../services/mantenimientos';
+import { ESTADO_EQUIPO_CHOICES } from '../../utils/constants';
+
+const EDITABLE = [
+  'departamento_area', 'responsable_area', 'tecnico_nombre',
+  'fecha_ejecucion', 'hora_inicio', 'hora_fin',
+  'actividades_realizadas', 'materiales_utilizados',
+  'estado_equipo_post', 'observaciones_tecnico',
+  'riesgo_presentado', 'descripcion_riesgo', 'acciones_tomadas',
+  'fecha_sugerida_proximo_mantenimiento',
+];
+
+export default function MantenimientoEdit() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState('');
+
+  useEffect(() => {
+    mantenimientosService
+      .get(id)
+      .then((data) => {
+        const v = {};
+        EDITABLE.forEach((f) => { v[f] = data[f] ?? ''; });
+        setForm(v);
+      })
+      .catch((e) => setApiError(e.message))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const handleField = (name, value) =>
+    setForm((p) => ({ ...p, [name]: value }));
+
+  const f = (name) => ({
+    value: form[name] ?? '',
+    onChange: (e) => handleField(name, e.target.value),
+    size: 'small',
+    fullWidth: true,
+  });
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    setApiError('');
+    try {
+      const payload = { ...form };
+      if (!payload.hora_fin) delete payload.hora_fin;
+      if (!payload.fecha_sugerida_proximo_mantenimiento) delete payload.fecha_sugerida_proximo_mantenimiento;
+      await mantenimientosService.update(id, payload);
+      navigate(`/mantenimientos/${id}`);
+    } catch (e) {
+      setApiError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <CircularProgress sx={{ mt: 4, ml: 4 }} />;
+
+  return (
+    <Box>
+      <PageHeader title={`Editar mantenimiento #${id}`} backTo={`/mantenimientos/${id}`} />
+
+      {apiError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setApiError('')}>
+          {apiError}
+        </Alert>
+      )}
+
+      <SectionCard title="Datos generales">
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField label="Técnico responsable" {...f('tecnico_nombre')} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField label="Departamento / Área" {...f('departamento_area')} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField label="Responsable del área" {...f('responsable_area')} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField label="Fecha de ejecución" type="date" {...f('fecha_ejecucion')} InputLabelProps={{ shrink: true }} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField label="Hora inicio" type="time" {...f('hora_inicio')} InputLabelProps={{ shrink: true }} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField label="Hora fin" type="time" {...f('hora_fin')} InputLabelProps={{ shrink: true }} />
+          </Grid>
+        </Grid>
+      </SectionCard>
+
+      <SectionCard title="Actividades y materiales">
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField label="Actividades realizadas" {...f('actividades_realizadas')} multiline rows={4} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField label="Materiales utilizados" {...f('materiales_utilizados')} multiline rows={4} />
+          </Grid>
+        </Grid>
+      </SectionCard>
+
+      <SectionCard title="Estado post-mantenimiento">
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField label="Estado del equipo" select {...f('estado_equipo_post')}>
+              <MenuItem value=""><em>— Seleccionar —</em></MenuItem>
+              {ESTADO_EQUIPO_CHOICES.map(({ value, label }) => (
+                <MenuItem key={value} value={value}>{label}</MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              label="Fecha sugerida próximo mantenimiento"
+              type="date"
+              {...f('fecha_sugerida_proximo_mantenimiento')}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <TextField label="Observaciones del técnico" {...f('observaciones_tecnico')} multiline rows={3} />
+          </Grid>
+        </Grid>
+      </SectionCard>
+
+      <SectionCard title="Riesgos">
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={Boolean(form.riesgo_presentado)}
+                  onChange={(e) => handleField('riesgo_presentado', e.target.checked)}
+                />
+              }
+              label="Se presentó algún riesgo durante el mantenimiento"
+            />
+          </Grid>
+          {form.riesgo_presentado && (
+            <>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField label="Descripción del riesgo" {...f('descripcion_riesgo')} multiline rows={3} />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField label="Acciones tomadas" {...f('acciones_tomadas')} multiline rows={3} />
+              </Grid>
+            </>
+          )}
+        </Grid>
+      </SectionCard>
+
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+        <Button onClick={() => navigate(`/mantenimientos/${id}`)}>Cancelar</Button>
+        <Button
+          variant="contained"
+          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+          onClick={handleSubmit}
+          disabled={saving}
+        >
+          Guardar cambios
+        </Button>
+      </Box>
+    </Box>
+  );
+}

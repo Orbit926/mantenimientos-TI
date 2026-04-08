@@ -1,0 +1,238 @@
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Box,
+  Button,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+  IconButton,
+  Tooltip,
+  ToggleButton,
+  ToggleButtonGroup,
+  TextField,
+  InputAdornment,
+  Alert,
+  Skeleton,
+  Stack,
+} from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import BuildIcon from '@mui/icons-material/Build';
+import BlockIcon from '@mui/icons-material/Block';
+import SearchIcon from '@mui/icons-material/Search';
+import { useNavigate } from 'react-router-dom';
+import PageHeader from '../../components/common/PageHeader';
+import StatusChip from '../../components/common/StatusChip';
+import BajaDialog from '../../components/equipos/BajaDialog';
+import { equiposService } from '../../services/equipos';
+import { formatDate } from '../../utils/formatters';
+import { TIPO_EQUIPO_MAP } from '../../utils/constants';
+
+const FILTROS = [
+  { value: 'activos', label: 'Activos' },
+  { value: 'inactivos', label: 'Baja' },
+  { value: 'proximos', label: 'Próximos' },
+  { value: 'vencidos', label: 'Vencidos' },
+];
+
+export default function EquiposList() {
+  const navigate = useNavigate();
+  const [equipos, setEquipos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [filtro, setFiltro] = useState('activos');
+  const [search, setSearch] = useState('');
+  const [bajaTarget, setBajaTarget] = useState(null);
+  const [bajaLoading, setBajaLoading] = useState(false);
+  const [bajaError, setBajaError] = useState('');
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError('');
+    const params = {};
+    if (filtro === 'activos') params.activo = 'true';
+    if (filtro === 'inactivos') params.activo = 'false';
+    if (filtro === 'proximos') params.proximo = 'true';
+    if (filtro === 'vencidos') params.vencido = 'true';
+    equiposService
+      .list(params)
+      .then((data) => setEquipos(data.results ?? data))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [filtro]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = search
+    ? equipos.filter(
+        (e) =>
+          e.codigo_interno.toLowerCase().includes(search.toLowerCase()) ||
+          e.marca.toLowerCase().includes(search.toLowerCase()) ||
+          e.modelo.toLowerCase().includes(search.toLowerCase()) ||
+          e.colaborador_nombre.toLowerCase().includes(search.toLowerCase()) ||
+          (e.ubicacion || '').toLowerCase().includes(search.toLowerCase())
+      )
+    : equipos;
+
+  const handleBaja = async (motivo) => {
+    setBajaLoading(true);
+    setBajaError('');
+    try {
+      await equiposService.baja(bajaTarget.id, motivo);
+      setBajaTarget(null);
+      load();
+    } catch (e) {
+      setBajaError(e.message);
+    } finally {
+      setBajaLoading(false);
+    }
+  };
+
+  return (
+    <Box>
+      <PageHeader
+        title="Equipos"
+        subtitle="Inventario de equipos de cómputo"
+        actions={
+          <Button variant="contained" onClick={() => navigate('/equipos/nuevo')}>
+            + Nuevo equipo
+          </Button>
+        }
+      />
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+          <ToggleButtonGroup
+            value={filtro}
+            exclusive
+            onChange={(_, v) => v && setFiltro(v)}
+            size="small"
+          >
+            {FILTROS.map(({ value, label }) => (
+              <ToggleButton key={value} value={value}>{label}</ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+          <TextField
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar..."
+            size="small"
+            sx={{ maxWidth: 280 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Stack>
+      </Paper>
+
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Código</TableCell>
+              <TableCell>Marca / Modelo</TableCell>
+              <TableCell>Tipo</TableCell>
+              <TableCell>Ubicación</TableCell>
+              <TableCell>Colaborador</TableCell>
+              <TableCell>Próximo mant.</TableCell>
+              <TableCell>Estado</TableCell>
+              <TableCell align="right">Acciones</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <TableRow key={i}>
+                  {Array.from({ length: 8 }).map((_, j) => (
+                    <TableCell key={j}><Skeleton /></TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  No se encontraron equipos
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((eq) => (
+                <TableRow key={eq.id} hover>
+                  <TableCell>
+                    <Typography variant="body2" fontWeight={600}>{eq.codigo_interno}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">{eq.marca} {eq.modelo}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {TIPO_EQUIPO_MAP[eq.tipo_equipo] ?? eq.tipo_equipo}
+                    </Typography>
+                  </TableCell>
+                  <TableCell><Typography variant="body2">{eq.ubicacion}</Typography></TableCell>
+                  <TableCell><Typography variant="body2">{eq.colaborador_nombre}</Typography></TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {formatDate(eq.fecha_proximo_mantenimiento)}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <StatusChip type="activo" value={eq.activo} />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                      <Tooltip title="Ver detalle">
+                        <IconButton size="small" onClick={() => navigate(`/equipos/${eq.id}`)}>
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Editar">
+                        <IconButton size="small" onClick={() => navigate(`/equipos/${eq.id}/editar`)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Registrar mantenimiento">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => navigate(`/mantenimientos/nuevo?equipoId=${eq.id}`)}
+                        >
+                          <BuildIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      {eq.activo && (
+                        <Tooltip title="Dar de baja">
+                          <IconButton size="small" color="error" onClick={() => setBajaTarget(eq)}>
+                            <BlockIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <BajaDialog
+        open={Boolean(bajaTarget)}
+        onClose={() => { setBajaTarget(null); setBajaError(''); }}
+        onConfirm={handleBaja}
+        loading={bajaLoading}
+        error={bajaError}
+      />
+    </Box>
+  );
+}
