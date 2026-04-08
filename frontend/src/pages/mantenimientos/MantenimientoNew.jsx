@@ -233,13 +233,13 @@ export default function MantenimientoNew() {
             <TextField label="Responsable del área" {...f('responsable_area')} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField label="Fecha de ejecución *" type="date" {...f('fecha_ejecucion')} InputLabelProps={{ shrink: true }} />
+            <TextField label="Fecha de ejecución *" type="date" {...f('fecha_ejecucion')} slotProps={{ inputLabel: { shrink: true } }} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField label="Hora inicio" type="time" {...f('hora_inicio')} InputLabelProps={{ shrink: true }} />
+            <TextField label="Hora inicio" type="time" {...f('hora_inicio')} slotProps={{ inputLabel: { shrink: true } }} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField label="Hora fin" type="time" {...f('hora_fin')} InputLabelProps={{ shrink: true }} />
+            <TextField label="Hora fin" type="time" {...f('hora_fin')} slotProps={{ inputLabel: { shrink: true } }} />
           </Grid>
         </Grid>
       </SectionCard>
@@ -272,7 +272,7 @@ export default function MantenimientoNew() {
               label="Fecha sugerida próximo mantenimiento"
               type="date"
               {...f('fecha_sugerida_proximo_mantenimiento')}
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
           </Grid>
           <Grid size={{ xs: 12 }}>

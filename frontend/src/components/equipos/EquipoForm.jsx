@@ -59,7 +59,7 @@ export default function EquipoForm({ values, onChange, errors = {} }) {
           label="Fecha próximo mantenimiento"
           type="date"
           {...field('fecha_proximo_mantenimiento')}
-          InputLabelProps={{ shrink: true }}
+          slotProps={{ inputLabel: { shrink: true } }}
         />
       </Grid>
     </Grid>

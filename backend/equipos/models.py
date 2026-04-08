@@ -23,7 +23,7 @@ class Equipo(models.Model):
     activo = models.BooleanField(default=True)
     fecha_alta = models.DateField(auto_now_add=True)
     fecha_baja = models.DateField(null=True, blank=True)
-    motivo_baja = models.TextField(blank=True)
+    motivo_baja = models.TextField(null=True, blank=True)
     fecha_ultimo_mantenimiento = models.DateField(null=True, blank=True)
     fecha_proximo_mantenimiento = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

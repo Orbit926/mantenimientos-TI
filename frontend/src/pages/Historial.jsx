@@ -133,7 +133,7 @@ export default function Historial() {
               onChange={setF('fecha_desde')}
               size="small"
               fullWidth
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 2 }}>
@@ -144,7 +144,7 @@ export default function Historial() {
               onChange={setF('fecha_hasta')}
               size="small"
               fullWidth
-              InputLabelProps={{ shrink: true }}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 1 }}>
