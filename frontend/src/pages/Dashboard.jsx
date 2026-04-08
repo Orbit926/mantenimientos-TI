@@ -81,8 +81,8 @@ export default function Dashboard() {
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 4 / 5 * 12 / 5 }}>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
           <StatCard
             title="Equipos activos"
             value={resumen?.total_equipos_activos}
@@ -91,7 +91,7 @@ export default function Dashboard() {
             loading={loading}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 'auto' }} sx={{ flexGrow: 1 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
           <StatCard
             title="Equipos de baja"
             value={resumen?.total_equipos_baja}
@@ -100,7 +100,7 @@ export default function Dashboard() {
             loading={loading}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 'auto' }} sx={{ flexGrow: 1 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
           <StatCard
             title="Mant. próximos"
             value={resumen?.mantenimientos_proximos}
@@ -109,7 +109,7 @@ export default function Dashboard() {
             loading={loading}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 'auto' }} sx={{ flexGrow: 1 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 6, lg: 2.4 }}>
           <StatCard
             title="Vencidos"
             value={resumen?.mantenimientos_vencidos}
@@ -118,7 +118,7 @@ export default function Dashboard() {
             loading={loading}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 'auto' }} sx={{ flexGrow: 1 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 6, lg: 2.4 }}>
           <StatCard
             title="Completados este mes"
             value={resumen?.mantenimientos_completados_mes}
