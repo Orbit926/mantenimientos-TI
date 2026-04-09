@@ -18,7 +18,7 @@ class EquipoDetailSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = [
             'fecha_alta', 'fecha_baja', 'motivo_baja',
-            'fecha_ultimo_mantenimiento', 'fecha_proximo_mantenimiento',
+            'fecha_ultimo_mantenimiento',
             'created_at', 'updated_at',
         ]
 
