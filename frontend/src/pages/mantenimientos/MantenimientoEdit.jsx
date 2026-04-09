@@ -9,11 +9,13 @@ import {
   CircularProgress,
   FormControlLabel,
   Switch,
+  Typography,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
+import ChecklistGroup from '../../components/mantenimientos/ChecklistGroup';
 import { mantenimientosService } from '../../services/mantenimientos';
 import { ESTADO_EQUIPO_CHOICES } from '../../utils/constants';
 
@@ -30,17 +32,38 @@ export default function MantenimientoEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = useState({});
+  const [checklistItems, setChecklistItems] = useState([]);
+  const [checklistValues, setChecklistValues] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
 
   useEffect(() => {
+    // Cargar items de checklist
+    mantenimientosService.checklistItems().then((d) => {
+      const items = d.results ?? d;
+      setChecklistItems(items);
+    });
+
+    // Cargar mantenimiento y respuestas de checklist
     mantenimientosService
       .get(id)
       .then((data) => {
         const v = {};
         EDITABLE.forEach((f) => { v[f] = data[f] ?? ''; });
         setForm(v);
+
+        // Cargar respuestas existentes del checklist
+        if (data.checklist_respuestas && data.checklist_respuestas.length > 0) {
+          const respuestas = {};
+          data.checklist_respuestas.forEach((resp) => {
+            respuestas[resp.checklist_item] = {
+              realizado: resp.realizado,
+              observacion: resp.observacion || '',
+            };
+          });
+          setChecklistValues(respuestas);
+        }
       })
       .catch((e) => setApiError(e.message))
       .finally(() => setLoading(false));
@@ -60,10 +83,18 @@ export default function MantenimientoEdit() {
     setSaving(true);
     setApiError('');
     try {
-      const payload = { ...form };
-      if (!payload.hora_fin) delete payload.hora_fin;
-      if (!payload.fecha_sugerida_proximo_mantenimiento) delete payload.fecha_sugerida_proximo_mantenimiento;
-      await mantenimientosService.update(id, payload);
+      await mantenimientosService.update(id, form);
+
+      // Guardar respuestas del checklist
+      const respuestas = Object.entries(checklistValues).map(([itemId, val]) => ({
+        checklist_item: parseInt(itemId),
+        realizado: val.realizado,
+        observacion: val.observacion || '',
+      }));
+      if (respuestas.length > 0) {
+        await mantenimientosService.saveChecklist(id, respuestas);
+      }
+
       navigate(`/mantenimientos/${id}`);
     } catch (e) {
       setApiError(e.message);
@@ -140,6 +171,20 @@ export default function MantenimientoEdit() {
             <TextField label="Observaciones del técnico" {...f('observaciones_tecnico')} multiline rows={3} />
           </Grid>
         </Grid>
+      </SectionCard>
+
+      <SectionCard title="Checklist técnico">
+        {checklistItems.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">Cargando checklist...</Typography>
+        ) : (
+          <ChecklistGroup
+            items={checklistItems}
+            values={checklistValues}
+            onChange={(id, val) =>
+              setChecklistValues((p) => ({ ...p, [id]: val }))
+            }
+          />
+        )}
       </SectionCard>
 
       <SectionCard title="Riesgos">
