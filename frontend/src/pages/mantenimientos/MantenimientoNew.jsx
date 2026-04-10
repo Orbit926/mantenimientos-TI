@@ -105,6 +105,7 @@ export default function MantenimientoNew() {
     setApiError('');
     try {
       const payload = { ...form, equipo: parseInt(form.equipo) };
+      if (!payload.hora_inicio) delete payload.hora_inicio;
       if (!payload.hora_fin) delete payload.hora_fin;
       if (!payload.fecha_sugerida_proximo_mantenimiento) delete payload.fecha_sugerida_proximo_mantenimiento;
 

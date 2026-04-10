@@ -36,7 +36,7 @@ class Mantenimiento(models.Model):
     responsable_area = models.CharField(max_length=200)
     tecnico_nombre = models.CharField(max_length=200)
     fecha_ejecucion = models.DateField()
-    hora_inicio = models.TimeField()
+    hora_inicio = models.TimeField(null=True, blank=True)
     hora_fin = models.TimeField(null=True, blank=True)
     actividades_realizadas = models.TextField(blank=True)
     materiales_utilizados = models.TextField(blank=True)
