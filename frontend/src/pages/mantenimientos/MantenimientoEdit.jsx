@@ -83,7 +83,11 @@ export default function MantenimientoEdit() {
     setSaving(true);
     setApiError('');
     try {
-      await mantenimientosService.update(id, form);
+      const payload = { ...form };
+      if (!payload.hora_fin) delete payload.hora_fin;
+      if (!payload.hora_inicio) delete payload.hora_inicio;
+      if (!payload.fecha_sugerida_proximo_mantenimiento) delete payload.fecha_sugerida_proximo_mantenimiento;
+      await mantenimientosService.update(id, payload);
 
       // Guardar respuestas del checklist
       const respuestas = Object.entries(checklistValues).map(([itemId, val]) => ({

@@ -17,4 +17,30 @@ python manage.py makemigrations --noinput
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 
+echo "Verificando checklist items..."
+python manage.py shell -c "
+from mantenimientos.models import ChecklistItem
+if ChecklistItem.objects.count() == 0:
+    items = [
+        ('hardware','Verificar estado físico del equipo',1),
+        ('hardware','Revisar conexiones de cables',2),
+        ('hardware','Inspeccionar ventiladores y disipadores',3),
+        ('hardware','Verificar integridad de puertos USB/HDMI',4),
+        ('software','Actualizar sistema operativo',5),
+        ('software','Actualizar antivirus y ejecutar escaneo',6),
+        ('software','Verificar licencias de software',7),
+        ('software','Limpiar archivos temporales',8),
+        ('red','Verificar conectividad de red',9),
+        ('red','Probar velocidad de conexión',10),
+        ('red','Revisar configuración de firewall',11),
+        ('seguridad','Verificar respaldos automáticos',12),
+        ('seguridad','Revisar políticas de contraseñas',13),
+        ('seguridad','Auditar accesos y permisos',14),
+    ]
+    ChecklistItem.objects.bulk_create([ChecklistItem(categoria=c,nombre=n,orden=o) for c,n,o in items])
+    print(f'✓ {ChecklistItem.objects.count()} checklist items creados automáticamente')
+else:
+    print(f'✓ {ChecklistItem.objects.count()} checklist items ya existen')
+"
+
 exec "$@"
