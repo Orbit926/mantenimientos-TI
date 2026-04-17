@@ -3,11 +3,12 @@ from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
-from .models import ChecklistItem, Mantenimiento
+from .models import ChecklistItem, EvidenciaMantenimiento, Mantenimiento
 from .serializers import (
     ChecklistItemSerializer,
     ChecklistRespuestaBulkSerializer,
     ChecklistRespuestaSerializer,
+    EvidenciaSerializer,
     FirmaSerializer,
     MantenimientoDetailSerializer,
     MantenimientoListSerializer,
@@ -22,12 +23,20 @@ class ChecklistItemViewSet(viewsets.ReadOnlyModelViewSet):
 
 class MantenimientoViewSet(viewsets.ModelViewSet):
     queryset = Mantenimiento.objects.select_related('equipo').all()
-    http_method_names = ['get', 'post', 'patch', 'head', 'options']
+    # 'delete' se permite solo para la acción personalizada de eliminar evidencias.
+    # El recurso principal /mantenimientos/{id}/ bloquea DELETE en destroy() más abajo.
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
 
     def get_serializer_class(self):
         if self.action == 'list':
             return MantenimientoListSerializer
         return MantenimientoDetailSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {'detail': 'Método "DELETE" no permitido.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
     @action(detail=True, methods=['post'])
     def cerrar(self, request, pk=None):
@@ -118,3 +127,43 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
             )
         serializer.save(mantenimiento=mantenimiento)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get', 'post'], parser_classes=[MultiPartParser, FormParser])
+    def evidencias(self, request, pk=None):
+        """
+        GET  /api/mantenimientos/{id}/evidencias/      — lista todas las evidencias
+        POST /api/mantenimientos/{id}/evidencias/      — sube una nueva (multipart/form-data)
+            fields: imagen (file, required), tipo (ANTES|DURANTE|DESPUES|GENERAL), descripcion
+        """
+        mantenimiento = self.get_object()
+
+        if request.method == 'GET':
+            evidencias = mantenimiento.evidencias.all()
+            return Response(
+                EvidenciaSerializer(evidencias, many=True, context={'request': request}).data
+            )
+
+        serializer = EvidenciaSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(mantenimiento=mantenimiento)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=['delete'],
+        url_path=r'evidencias/(?P<evidencia_id>\d+)',
+    )
+    def eliminar_evidencia(self, request, pk=None, evidencia_id=None):
+        """DELETE /api/mantenimientos/{id}/evidencias/{evidencia_id}/ — elimina evidencia"""
+        mantenimiento = self.get_object()
+        try:
+            evidencia = mantenimiento.evidencias.get(pk=evidencia_id)
+        except EvidenciaMantenimiento.DoesNotExist:
+            return Response(
+                {'detail': 'Evidencia no encontrada.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        # Eliminar también el archivo del storage (funciona con local y con S3)
+        evidencia.imagen.delete(save=False)
+        evidencia.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

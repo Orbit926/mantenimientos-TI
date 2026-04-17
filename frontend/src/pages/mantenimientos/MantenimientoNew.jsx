@@ -21,6 +21,7 @@ import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
 import ChecklistGroup from '../../components/mantenimientos/ChecklistGroup';
 import SignaturePad from '../../components/mantenimientos/SignaturePad';
+import EvidenciaUploader from '../../components/mantenimientos/EvidenciaUploader';
 import FileActionButtons from '../../components/common/FileActionButtons';
 import { mantenimientosService } from '../../services/mantenimientos';
 import { equiposService } from '../../services/equipos';
@@ -55,6 +56,7 @@ export default function MantenimientoNew() {
   const [selectedEquipo, setSelectedEquipo] = useState(null);
   const [checklistItems, setChecklistItems] = useState([]);
   const [checklistValues, setChecklistValues] = useState({});
+  const [evidencias, setEvidencias] = useState([]);
   const [mantenimientoId, setMantenimientoId] = useState(null);
   const [pdfUrl, setPdfUrl] = useState('');
 
@@ -95,6 +97,26 @@ export default function MantenimientoNew() {
 
   const showSnack = (message, severity = 'success') =>
     setSnackbar({ open: true, message, severity });
+
+  const handleUploadEvidencia = async (file, tipo, descripcion) => {
+    if (!mantenimientoId) {
+      throw new Error('Primero guarda el borrador para poder subir evidencias.');
+    }
+    const fd = new FormData();
+    fd.append('imagen', file);
+    fd.append('tipo', tipo);
+    if (descripcion) fd.append('descripcion', descripcion);
+    const nueva = await mantenimientosService.uploadEvidencia(mantenimientoId, fd);
+    setEvidencias((prev) => [...prev, nueva]);
+    showSnack('Evidencia subida correctamente');
+  };
+
+  const handleDeleteEvidencia = async (evidenciaId) => {
+    if (!mantenimientoId) return;
+    await mantenimientosService.deleteEvidencia(mantenimientoId, evidenciaId);
+    setEvidencias((prev) => prev.filter((e) => e.id !== evidenciaId));
+    showSnack('Evidencia eliminada');
+  };
 
   const handleGuardar = async () => {
     if (!form.equipo || !form.fecha_ejecucion || !form.tecnico_nombre) {
@@ -324,7 +346,18 @@ export default function MantenimientoNew() {
         )}
       </SectionCard>
 
-      {/* Sección 6: Firmas */}
+      {/* Sección 6: Evidencias fotográficas */}
+      <SectionCard title="Evidencias fotográficas">
+        <EvidenciaUploader
+          evidencias={evidencias}
+          onUpload={handleUploadEvidencia}
+          onDelete={handleDeleteEvidencia}
+          disabled={!mantenimientoId}
+          helperText="Guarda el borrador primero para poder subir fotos del estado del equipo."
+        />
+      </SectionCard>
+
+      {/* Sección 7: Firmas */}
       <SectionCard title="Firmas">
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 6 }}>

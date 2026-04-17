@@ -31,10 +31,19 @@ def generar_pdf_mantenimiento(mantenimiento):
     firmas_qs = mantenimiento.firmas.all()
     firmas = {f.tipo_firma: f for f in firmas_qs}
 
+    evidencias = []
+    for ev in mantenimiento.evidencias.all():
+        evidencias.append({
+            'tipo_display': ev.get_tipo_display(),
+            'descripcion': ev.descripcion,
+            'imagen_b64': _imagen_a_base64(ev.imagen),
+        })
+
     context = {
         'mantenimiento': mantenimiento,
         'equipo': mantenimiento.equipo,
         'checklist': mantenimiento.checklist_respuestas.select_related('checklist_item').all(),
+        'evidencias': evidencias,
         'firma_tecnico': firmas.get('TECNICO'),
         'firma_usuario': firmas.get('USUARIO'),
         'firma_tecnico_b64': _imagen_a_base64(firmas['TECNICO'].firma_imagen) if 'TECNICO' in firmas else None,

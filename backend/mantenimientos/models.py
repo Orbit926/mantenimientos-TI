@@ -80,6 +80,39 @@ class ChecklistRespuesta(models.Model):
         return f"{self.mantenimiento_id} - {self.checklist_item.nombre}"
 
 
+class EvidenciaMantenimiento(models.Model):
+    """
+    Fotografías que sirven como evidencia del estado del equipo durante un mantenimiento.
+
+    La imagen se almacena usando el backend de storage configurado en settings
+    (DEFAULT_FILE_STORAGE). Por defecto es el sistema de archivos local
+    (MEDIA_ROOT/evidencias/mantenimientos/), pero puede cambiarse a S3, GCS u
+    otro bucket simplemente configurando django-storages, sin modificar este modelo.
+    """
+    TIPO_CHOICES = [
+        ('ANTES', 'Antes del mantenimiento'),
+        ('DURANTE', 'Durante el mantenimiento'),
+        ('DESPUES', 'Después del mantenimiento'),
+        ('GENERAL', 'Evidencia general'),
+    ]
+
+    mantenimiento = models.ForeignKey(
+        Mantenimiento, on_delete=models.CASCADE, related_name='evidencias'
+    )
+    imagen = models.ImageField(upload_to='evidencias/mantenimientos/')
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='GENERAL')
+    descripcion = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['tipo', 'created_at']
+        verbose_name = 'Evidencia de Mantenimiento'
+        verbose_name_plural = 'Evidencias de Mantenimiento'
+
+    def __str__(self):
+        return f"Evidencia {self.tipo} - Mantenimiento #{self.mantenimiento_id}"
+
+
 class Firma(models.Model):
     TIPO_CHOICES = [
         ('TECNICO', 'Técnico'),

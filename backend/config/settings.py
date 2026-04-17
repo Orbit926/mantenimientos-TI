@@ -81,6 +81,29 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# ─── File Storage ──────────────────────────────────────────────────
+# Por defecto Django usa FileSystemStorage (guarda en MEDIA_ROOT).
+# Para migrar a un bucket (S3, GCS, Azure) en el futuro:
+#   1. pip install django-storages[boto3]
+#   2. Agregar 'storages' a INSTALLED_APPS
+#   3. Descomentar y configurar lo siguiente:
+# STORAGES = {
+#     'default': {
+#         'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+#         'OPTIONS': {
+#             'bucket_name': os.environ.get('AWS_STORAGE_BUCKET_NAME'),
+#             'region_name': os.environ.get('AWS_S3_REGION_NAME', 'us-east-1'),
+#             'access_key': os.environ.get('AWS_ACCESS_KEY_ID'),
+#             'secret_key': os.environ.get('AWS_SECRET_ACCESS_KEY'),
+#         },
+#     },
+#     'staticfiles': {
+#         'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+#     },
+# }
+# No se requieren cambios en modelos ni views — ImageField/FileField usan automáticamente
+# el storage configurado aquí.
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {

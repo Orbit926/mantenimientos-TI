@@ -265,6 +265,60 @@ export default function MantenimientoDetail() {
           </Grid>
         )}
 
+        {/* Evidencias fotográficas */}
+        {mant.evidencias?.length > 0 && (
+          <Grid size={{ xs: 12 }}>
+            <SectionCard title="Evidencias fotográficas">
+              <Grid container spacing={2}>
+                {mant.evidencias.map((ev) => (
+                  <Grid key={ev.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                    <Box
+                      sx={{
+                        border: '1px solid #e5e7eb',
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => window.open(ev.imagen_url, '_blank')}
+                    >
+                      <Box
+                        sx={{
+                          width: '100%',
+                          paddingTop: '75%',
+                          position: 'relative',
+                          bgcolor: 'grey.100',
+                        }}
+                      >
+                        <Box
+                          component="img"
+                          src={ev.imagen_url}
+                          alt={ev.descripcion || ev.tipo}
+                          sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                      </Box>
+                      <Box sx={{ p: 1.5 }}>
+                        <Chip label={ev.tipo} size="small" variant="outlined" />
+                        {ev.descripcion && (
+                          <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                            {ev.descripcion}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </SectionCard>
+          </Grid>
+        )}
+
         {/* Firmas */}
         {mant.firmas?.length > 0 && (
           <Grid size={{ xs: 12 }}>

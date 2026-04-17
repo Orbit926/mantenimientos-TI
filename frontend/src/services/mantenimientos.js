@@ -21,4 +21,13 @@ export const mantenimientosService = {
     }).then(r => r.data),
 
   checklistItems: () => client.get('/checklist-items/').then(r => r.data),
+
+  // Evidencias (fotos del estado del equipo)
+  getEvidencias: (id) => client.get(`/mantenimientos/${id}/evidencias/`).then(r => r.data),
+  uploadEvidencia: (id, formData) =>
+    client.post(`/mantenimientos/${id}/evidencias/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data),
+  deleteEvidencia: (mantenimientoId, evidenciaId) =>
+    client.delete(`/mantenimientos/${mantenimientoId}/evidencias/${evidenciaId}/`).then(r => r.data),
 };

@@ -34,6 +34,11 @@
 
     .folio { text-align: right; font-size: 9px; color: #888; margin-bottom: 4px; }
     .riesgo-box { background-color: #fff3cd; border: 1px solid #ffc107; padding: 6px; }
+
+    .evidencia-item { border: 1px solid #ccc; padding: 6px; margin-bottom: 8px; page-break-inside: avoid; }
+    .evidencia-tipo { font-weight: bold; background-color: #f0f4f8; padding: 3px 6px; margin-bottom: 4px; }
+    .evidencia-desc { font-size: 9px; color: #555; margin-bottom: 4px; }
+    .evidencia-img { max-width: 100%; max-height: 320px; display: block; margin: 0 auto; }
   </style>
 </head>
 <body>
@@ -112,6 +117,23 @@
       <tr><th style="border:none;">Acciones Tomadas</th><td style="border:none;">{{ mantenimiento.acciones_tomadas|default:"—"|linebreaksbr }}</td></tr>
     </table>
   </div>
+  {% endif %}
+
+  {% if evidencias %}
+  <h2>Evidencia Fotográfica</h2>
+  {% for ev in evidencias %}
+    <div class="evidencia-item">
+      <div class="evidencia-tipo">{{ ev.tipo_display }}</div>
+      {% if ev.descripcion %}
+      <div class="evidencia-desc">{{ ev.descripcion }}</div>
+      {% endif %}
+      {% if ev.imagen_b64 %}
+      <img class="evidencia-img" src="{{ ev.imagen_b64 }}" />
+      {% else %}
+      <div style="font-size:9px; color:#b00020;">Imagen no disponible</div>
+      {% endif %}
+    </div>
+  {% endfor %}
   {% endif %}
 
   <h2>Conformidad y Firmas</h2>

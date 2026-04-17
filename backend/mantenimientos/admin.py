@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ChecklistItem, ChecklistRespuesta, Firma, Mantenimiento
+from .models import ChecklistItem, ChecklistRespuesta, EvidenciaMantenimiento, Firma, Mantenimiento
 
 
 @admin.register(ChecklistItem)
@@ -21,10 +21,16 @@ class FirmaInline(admin.TabularInline):
     readonly_fields = ['fecha_firma']
 
 
+class EvidenciaInline(admin.TabularInline):
+    model = EvidenciaMantenimiento
+    extra = 0
+    readonly_fields = ['created_at']
+
+
 @admin.register(Mantenimiento)
 class MantenimientoAdmin(admin.ModelAdmin):
     list_display = ['id', 'equipo', 'tecnico_nombre', 'fecha_ejecucion', 'estatus', 'estado_equipo_post']
     list_filter = ['estatus', 'estado_equipo_post', 'riesgo_presentado']
     search_fields = ['equipo__codigo_interno', 'tecnico_nombre', 'departamento_area']
-    inlines = [ChecklistRespuestaInline, FirmaInline]
+    inlines = [ChecklistRespuestaInline, EvidenciaInline, FirmaInline]
     readonly_fields = ['created_at', 'updated_at', 'documento_pdf_generado_en']

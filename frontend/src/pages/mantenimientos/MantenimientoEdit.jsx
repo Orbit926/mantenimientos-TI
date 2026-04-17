@@ -16,6 +16,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
 import ChecklistGroup from '../../components/mantenimientos/ChecklistGroup';
+import EvidenciaUploader from '../../components/mantenimientos/EvidenciaUploader';
 import { mantenimientosService } from '../../services/mantenimientos';
 import { ESTADO_EQUIPO_CHOICES } from '../../utils/constants';
 
@@ -34,6 +35,7 @@ export default function MantenimientoEdit() {
   const [form, setForm] = useState({});
   const [checklistItems, setChecklistItems] = useState([]);
   const [checklistValues, setChecklistValues] = useState({});
+  const [evidencias, setEvidencias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState('');
@@ -64,6 +66,11 @@ export default function MantenimientoEdit() {
           });
           setChecklistValues(respuestas);
         }
+
+        // Cargar evidencias existentes
+        if (data.evidencias && Array.isArray(data.evidencias)) {
+          setEvidencias(data.evidencias);
+        }
       })
       .catch((e) => setApiError(e.message))
       .finally(() => setLoading(false));
@@ -71,6 +78,20 @@ export default function MantenimientoEdit() {
 
   const handleField = (name, value) =>
     setForm((p) => ({ ...p, [name]: value }));
+
+  const handleUploadEvidencia = async (file, tipo, descripcion) => {
+    const fd = new FormData();
+    fd.append('imagen', file);
+    fd.append('tipo', tipo);
+    if (descripcion) fd.append('descripcion', descripcion);
+    const nueva = await mantenimientosService.uploadEvidencia(id, fd);
+    setEvidencias((prev) => [...prev, nueva]);
+  };
+
+  const handleDeleteEvidencia = async (evidenciaId) => {
+    await mantenimientosService.deleteEvidencia(id, evidenciaId);
+    setEvidencias((prev) => prev.filter((e) => e.id !== evidenciaId));
+  };
 
   const f = (name) => ({
     value: form[name] ?? '',
@@ -189,6 +210,14 @@ export default function MantenimientoEdit() {
             }
           />
         )}
+      </SectionCard>
+
+      <SectionCard title="Evidencias fotográficas">
+        <EvidenciaUploader
+          evidencias={evidencias}
+          onUpload={handleUploadEvidencia}
+          onDelete={handleDeleteEvidencia}
+        />
       </SectionCard>
 
       <SectionCard title="Riesgos">

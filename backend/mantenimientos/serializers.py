@@ -1,6 +1,21 @@
 from rest_framework import serializers
 
-from .models import ChecklistItem, ChecklistRespuesta, Firma, Mantenimiento
+from .models import ChecklistItem, ChecklistRespuesta, EvidenciaMantenimiento, Firma, Mantenimiento
+
+
+class EvidenciaSerializer(serializers.ModelSerializer):
+    imagen_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = EvidenciaMantenimiento
+        fields = ['id', 'tipo', 'descripcion', 'imagen', 'imagen_url', 'created_at']
+        extra_kwargs = {'imagen': {'write_only': True}}
+
+    def get_imagen_url(self, obj):
+        request = self.context.get('request')
+        if obj.imagen and request:
+            return request.build_absolute_uri(obj.imagen.url)
+        return obj.imagen.url if obj.imagen else None
 
 
 class ChecklistItemSerializer(serializers.ModelSerializer):
@@ -97,6 +112,9 @@ class MantenimientoDetailSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         ret['firmas'] = FirmaSerializer(
             instance.firmas.all(), many=True, context={'request': request}
+        ).data
+        ret['evidencias'] = EvidenciaSerializer(
+            instance.evidencias.all(), many=True, context={'request': request}
         ).data
         return ret
 
