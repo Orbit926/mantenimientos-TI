@@ -42,6 +42,7 @@ REGLAS ESTRICTAS:
 4. Si no necesitas ninguna tool, responde directamente con type=final.
 5. NUNCA inventes datos. Si no tienes la información, dilo claramente en type=final.
 6. Solo usa las tools listadas arriba. No inventes tools nuevas.
+7. Cuando necesites el detalle de un equipo, usa el campo "equipo_id" del resultado previo como argumento equipo_id de obtener_detalle_equipo. NUNCA uses un ID que no venga de un resultado previo de tool.
 """
 
 

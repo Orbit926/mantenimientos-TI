@@ -248,11 +248,12 @@ export default function MantenimientoNew() {
 
   const handleCompletar = async () => {
     if (!mantenimientoId) {
-      setApiError('Guarda el mantenimiento primero antes de completarlo.');
+      showSnack('Guarda el mantenimiento primero antes de completarlo.', 'warning');
       return;
     }
     const errores = validarParaCompletar();
     if (errores.length > 0) {
+      showSnack(errores[0], 'error');
       setApiError(errores.join(' · '));
       return;
     }
@@ -265,8 +266,10 @@ export default function MantenimientoNew() {
     } catch (e) {
       const data = e.responseData;
       if (data?.errores) {
+        showSnack(data.errores[0], 'error');
         setApiError(data.errores.join(' · '));
       } else if (!handleApiFieldErrors(e)) {
+        showSnack(e.message, 'error');
         setApiError(e.message);
       }
     } finally {

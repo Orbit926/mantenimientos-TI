@@ -1217,6 +1217,7 @@ def obtener_carga_tecnico(arguments: dict) -> dict:
 
 def _equipo_basico(eq) -> dict:
     return {
+        'equipo_id': eq.id,
         'id': eq.id,
         'codigo_interno': eq.codigo_interno,
         'marca': eq.marca,

@@ -240,6 +240,7 @@ export default function MantenimientoEdit() {
   const handleCompletar = async () => {
     const errores = validarParaCompletar();
     if (errores.length > 0) {
+      showSnack(errores[0], 'error');
       setApiError(errores.join(' · '));
       return;
     }
@@ -252,8 +253,10 @@ export default function MantenimientoEdit() {
     } catch (e) {
       const data = e.responseData;
       if (data?.errores) {
+        showSnack(data.errores[0], 'error');
         setApiError(data.errores.join(' · '));
       } else if (!handleApiFieldErrors(e)) {
+        showSnack(e.message, 'error');
         setApiError(e.message);
       }
     } finally {
