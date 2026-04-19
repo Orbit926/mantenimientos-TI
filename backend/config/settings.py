@@ -141,6 +141,21 @@ SIMPLE_JWT = {
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
+# ─── Logging ───────────────────────────────────────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {'format': '[%(levelname)s] %(name)s: %(message)s'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'simple'},
+    },
+    'loggers': {
+        'chat': {'handlers': ['console'], 'level': 'DEBUG' if DEBUG else 'INFO', 'propagate': False},
+    },
+}
+
 # ─── Ollama / IA ───────────────────────────────────────────────────
 OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://host.docker.internal:11434')
 OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'gemma4:e4b')
