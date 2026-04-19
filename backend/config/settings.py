@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'equipos',
     'mantenimientos',
     'dashboard',
+    'chat',
 ]
 
 AUTH_USER_MODEL = 'usuarios.Tecnico'
@@ -139,3 +140,7 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG
+
+# ─── Ollama / IA ───────────────────────────────────────────────────
+OLLAMA_URL = os.environ.get('OLLAMA_URL', 'http://host.docker.internal:11434')
+OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'gemma4:e4b')
