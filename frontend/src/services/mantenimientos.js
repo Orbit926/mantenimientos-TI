@@ -2,6 +2,9 @@ import client from '../api/client';
 
 export const mantenimientosService = {
   list: (params = {}) => client.get('/mantenimientos/', { params }).then(r => r.data),
+  getBorradorByEquipo: (equipoId) =>
+    client.get('/mantenimientos/', { params: { equipo: equipoId, estatus: 'BORRADOR' } })
+      .then(r => { const d = r.data; const items = d.results ?? d; return items[0] || null; }),
   get: (id) => client.get(`/mantenimientos/${id}/`).then(r => r.data),
   create: (data) => client.post('/mantenimientos/', data).then(r => r.data),
   update: (id, data) => client.patch(`/mantenimientos/${id}/`, data).then(r => r.data),

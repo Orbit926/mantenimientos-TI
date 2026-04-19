@@ -33,12 +33,33 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
         tecnico_id = self.request.query_params.get('tecnico')
         if tecnico_id:
             qs = qs.filter(tecnico_id=tecnico_id)
+        equipo_id = self.request.query_params.get('equipo')
+        if equipo_id:
+            qs = qs.filter(equipo_id=equipo_id)
+        estatus = self.request.query_params.get('estatus')
+        if estatus:
+            qs = qs.filter(estatus=estatus)
         return qs
 
     def get_serializer_class(self):
         if self.action == 'list':
             return MantenimientoListSerializer
         return MantenimientoDetailSerializer
+
+    def create(self, request, *args, **kwargs):
+        equipo_id = request.data.get('equipo')
+        if equipo_id:
+            borrador = Mantenimiento.objects.filter(
+                equipo_id=equipo_id, estatus='BORRADOR'
+            ).first()
+            if borrador:
+                serializer = MantenimientoDetailSerializer(
+                    borrador, context={'request': request}
+                )
+                data = serializer.data
+                data['existing_borrador'] = True
+                return Response(data, status=status.HTTP_200_OK)
+        return super().create(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         return Response(

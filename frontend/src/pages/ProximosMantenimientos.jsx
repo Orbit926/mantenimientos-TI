@@ -18,6 +18,7 @@ import BuildIcon from '@mui/icons-material/Build';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/common/PageHeader';
 import { dashboardService } from '../services/dashboard';
+import { mantenimientosService } from '../services/mantenimientos';
 import { formatDate, daysFromToday } from '../utils/formatters';
 import { TIPO_EQUIPO_MAP } from '../utils/constants';
 
@@ -35,6 +36,7 @@ export default function ProximosMantenimientos() {
   const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [registrando, setRegistrando] = useState(null);
 
   useEffect(() => {
     dashboardService
@@ -126,7 +128,22 @@ export default function ProximosMantenimientos() {
                       size="small"
                       variant="contained"
                       startIcon={<BuildIcon />}
-                      onClick={() => navigate(`/mantenimientos/nuevo?equipoId=${eq.id}`)}
+                      disabled={registrando === eq.id}
+                      onClick={async () => {
+                        setRegistrando(eq.id);
+                        try {
+                          const borrador = await mantenimientosService.getBorradorByEquipo(eq.id);
+                          if (borrador) {
+                            navigate(`/mantenimientos/${borrador.id}/editar`);
+                          } else {
+                            navigate(`/mantenimientos/nuevo?equipoId=${eq.id}`);
+                          }
+                        } catch {
+                          navigate(`/mantenimientos/nuevo?equipoId=${eq.id}`);
+                        } finally {
+                          setRegistrando(null);
+                        }
+                      }}
                     >
                       Registrar
                     </Button>

@@ -177,6 +177,11 @@ export default function MantenimientoNew() {
         mant = await mantenimientosService.update(mantenimientoId, payload);
       } else {
         mant = await mantenimientosService.create(payload);
+        if (mant.existing_borrador) {
+          showSnack('Ya existe un borrador para este equipo. Abriendo...', 'info');
+          setTimeout(() => navigate(`/mantenimientos/${mant.id}/editar`), 800);
+          return;
+        }
         setMantenimientoId(mant.id);
       }
 
