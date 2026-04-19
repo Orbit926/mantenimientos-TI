@@ -48,9 +48,11 @@ export default function MantenimientoEdit() {
   const [completing, setCompleting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [pdfUrl, setPdfUrl] = useState('');
   const [firmaDefaults, setFirmaDefaults] = useState({ tecnico: { nombre: '', cargo: '' }, usuario: { nombre: '', cargo: '' } });
+  const [firmasGuardadas, setFirmasGuardadas] = useState({ TECNICO: false, USUARIO: false });
 
   const firmaTecnicoRef = useRef(null);
   const firmaUsuarioRef = useRef(null);
@@ -101,6 +103,7 @@ export default function MantenimientoEdit() {
         tecnico: { nombre: firmaTec?.nombre_firmante || '', cargo: firmaTec?.cargo_firmante || '' },
         usuario: { nombre: firmaUsr?.nombre_firmante || '', cargo: firmaUsr?.cargo_firmante || '' },
       });
+      setFirmasGuardadas({ TECNICO: !!firmaTec, USUARIO: !!firmaUsr });
     }).catch(() => {});
   }, [id]);
 
@@ -160,6 +163,8 @@ export default function MantenimientoEdit() {
     onChange: (e) => handleField(name, e.target.value),
     size: 'small',
     fullWidth: true,
+    error: !!fieldErrors[name],
+    helperText: fieldErrors[name] || '',
   });
 
   const handleSubmit = async () => {
@@ -196,6 +201,7 @@ export default function MantenimientoEdit() {
             fd.append('firma_imagen', data.file);
             try {
               await mantenimientosService.saveFirma(id, fd);
+              setFirmasGuardadas((p) => ({ ...p, [tipo]: true }));
             } catch {
             }
           }
@@ -228,12 +234,14 @@ export default function MantenimientoEdit() {
     const firmaU = firmaUsuarioRef.current;
     firmaT?.markAllTouched();
     firmaU?.markAllTouched();
-    if (!firmaT || firmaT.isEmpty()) { errores.push('Falta dibujar la firma del técnico.'); }
-    else if (firmaT.isNombreVacio()) { errores.push('Falta el nombre del firmante (técnico).'); }
-    else if (firmaT.isCargoVacio()) { errores.push('Falta el puesto del firmante (técnico).'); }
-    if (!firmaU || firmaU.isEmpty()) { errores.push('Falta dibujar la firma del usuario.'); }
-    else if (firmaU.isNombreVacio()) { errores.push('Falta el nombre del firmante (usuario).'); }
-    else if (firmaU.isCargoVacio()) { errores.push('Falta el puesto del firmante (usuario).'); }
+    const tecCanvasOk = firmaT && !firmaT.isEmpty();
+    const usrCanvasOk = firmaU && !firmaU.isEmpty();
+    if (!tecCanvasOk && !firmasGuardadas.TECNICO) { errores.push('Falta dibujar la firma del técnico.'); }
+    else if (tecCanvasOk && firmaT.isNombreVacio()) { errores.push('Falta el nombre del firmante (técnico).'); }
+    else if (tecCanvasOk && firmaT.isCargoVacio()) { errores.push('Falta el puesto del firmante (técnico).'); }
+    if (!usrCanvasOk && !firmasGuardadas.USUARIO) { errores.push('Falta dibujar la firma del usuario.'); }
+    else if (usrCanvasOk && firmaU.isNombreVacio()) { errores.push('Falta el nombre del firmante (usuario).'); }
+    else if (usrCanvasOk && firmaU.isCargoVacio()) { errores.push('Falta el puesto del firmante (usuario).'); }
     return errores;
   };
 
