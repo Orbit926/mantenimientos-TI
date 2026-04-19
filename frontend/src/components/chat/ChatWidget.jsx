@@ -17,6 +17,7 @@ import SendIcon from '@mui/icons-material/Send';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import ImageIcon from '@mui/icons-material/Image';
+import ReactMarkdown from 'react-markdown';
 import { sendMessage, sendImage } from '../../api/chat';
 
 const BOT_AVATAR = <SmartToyIcon sx={{ fontSize: 18 }} />;
@@ -62,11 +63,31 @@ function Message({ msg }) {
           bgcolor: isUser ? '#1565c0' : isError ? '#ffebee' : isImage ? 'transparent' : '#f0f4f8',
           color: isUser ? '#fff' : isError ? 'error.main' : 'text.primary',
           fontSize: '0.85rem',
-          lineHeight: 1.5,
-          whiteSpace: 'pre-wrap',
+          lineHeight: 1.6,
           wordBreak: 'break-word',
           boxShadow: isImage ? 'none' : '0 1px 2px rgba(0,0,0,0.1)',
           overflow: 'hidden',
+          '& p': { margin: 0 },
+          '& p + p': { mt: 0.75 },
+          '& ul, & ol': { mt: 0.5, mb: 0, pl: 2.5 },
+          '& li': { mb: 0.25 },
+          '& strong': { fontWeight: 700 },
+          '& em': { fontStyle: 'italic' },
+          '& h1, & h2, & h3, & h4': { mt: 1, mb: 0.5, fontWeight: 700, fontSize: '0.9rem' },
+          '& code': {
+            bgcolor: isUser ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.07)',
+            px: 0.5, borderRadius: 0.5, fontSize: '0.8rem', fontFamily: 'monospace',
+          },
+          '& pre': {
+            bgcolor: isUser ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.07)',
+            p: 1, borderRadius: 1, overflowX: 'auto', mt: 0.5,
+            '& code': { bgcolor: 'transparent', px: 0 },
+          },
+          '& blockquote': {
+            borderLeft: '3px solid',
+            borderColor: isUser ? 'rgba(255,255,255,0.5)' : '#90a4ae',
+            pl: 1, ml: 0, my: 0.5, opacity: 0.85,
+          },
         }}
       >
         {isImage ? (
@@ -76,7 +97,11 @@ function Message({ msg }) {
             alt="imagen adjunta"
             sx={{ maxWidth: '100%', maxHeight: 200, borderRadius: 2, display: 'block', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
           />
-        ) : msg.content}
+        ) : (isUser || isError) ? (
+          msg.content
+        ) : (
+          <ReactMarkdown>{msg.content}</ReactMarkdown>
+        )}
       </Box>
     </Box>
   );
