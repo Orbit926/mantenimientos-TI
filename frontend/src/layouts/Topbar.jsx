@@ -1,7 +1,12 @@
-import { AppBar, Toolbar, Typography, Box } from '@mui/material';
+import { useState } from 'react';
+import {
+  AppBar, Toolbar, Typography, Box, IconButton, Menu, MenuItem, Avatar, Divider, Tooltip,
+} from '@mui/material';
 import ComputerIcon from '@mui/icons-material/Computer';
-import { useLocation } from 'react-router-dom';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { SIDEBAR_WIDTH } from '../utils/constants';
+import { useAuth } from '../context/AuthContext';
 
 const PAGE_TITLES = {
   '/': 'Dashboard',
@@ -11,6 +16,7 @@ const PAGE_TITLES = {
   '/mantenimientos/nuevo': 'Mantenimientos › Nuevo mantenimiento',
   '/proximos-mantenimientos': 'Próximos mantenimientos',
   '/historial': 'Historial',
+  '/tecnicos': 'Técnicos',
 };
 
 function resolveTitle(pathname) {
@@ -24,7 +30,20 @@ function resolveTitle(pathname) {
 
 export default function Topbar() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const title = resolveTitle(pathname);
+  const { user, logout } = useAuth();
+  const [anchor, setAnchor] = useState(null);
+
+  const handleLogout = async () => {
+    setAnchor(null);
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
+  const initials = user
+    ? `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? ''}`.toUpperCase() || user.username?.[0]?.toUpperCase()
+    : '?';
 
   return (
     <AppBar
@@ -39,12 +58,41 @@ export default function Topbar() {
       }}
     >
       <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
           <ComputerIcon sx={{ color: 'primary.main', fontSize: 20 }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#1a1a2e', fontSize: '0.95rem' }}>
             {title}
           </Typography>
         </Box>
+
+        {user && (
+          <>
+            <Tooltip title={`${user.full_name || user.username} · Click para salir`}>
+              <IconButton onClick={(e) => setAnchor(e.currentTarget)} size="small">
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: '0.8rem' }}>
+                  {initials}
+                </Avatar>
+              </IconButton>
+            </Tooltip>
+            <Menu
+              anchorEl={anchor}
+              open={Boolean(anchor)}
+              onClose={() => setAnchor(null)}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            >
+              <Box sx={{ px: 2, py: 1 }}>
+                <Typography variant="subtitle2" fontWeight={600}>{user.full_name || user.username}</Typography>
+                <Typography variant="caption" color="text.secondary">{user.puesto || (user.is_staff ? 'Administrador' : 'Técnico')}</Typography>
+              </Box>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
+                Cerrar sesión
+              </MenuItem>
+            </Menu>
+          </>
+        )}
       </Toolbar>
     </AppBar>
   );

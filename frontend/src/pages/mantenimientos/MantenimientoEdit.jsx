@@ -18,10 +18,11 @@ import SectionCard from '../../components/common/SectionCard';
 import ChecklistGroup from '../../components/mantenimientos/ChecklistGroup';
 import EvidenciaUploader from '../../components/mantenimientos/EvidenciaUploader';
 import { mantenimientosService } from '../../services/mantenimientos';
+import { tecnicosService } from '../../services/tecnicos';
 import { ESTADO_EQUIPO_CHOICES } from '../../utils/constants';
 
 const EDITABLE = [
-  'departamento_area', 'responsable_area', 'tecnico_nombre',
+  'departamento_area', 'responsable_area', 'tecnico',
   'fecha_ejecucion', 'hora_inicio', 'hora_fin',
   'actividades_realizadas', 'materiales_utilizados',
   'estado_equipo_post', 'observaciones_tecnico',
@@ -33,6 +34,7 @@ export default function MantenimientoEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = useState({});
+  const [tecnicos, setTecnicos] = useState([]);
   const [checklistItems, setChecklistItems] = useState([]);
   const [checklistValues, setChecklistValues] = useState({});
   const [evidencias, setEvidencias] = useState([]);
@@ -41,6 +43,9 @@ export default function MantenimientoEdit() {
   const [apiError, setApiError] = useState('');
 
   useEffect(() => {
+    // Cargar técnicos activos para el dropdown
+    tecnicosService.list({ activo: 'true' }).then((d) => setTecnicos(d.results ?? d));
+
     // Cargar items de checklist
     mantenimientosService.checklistItems().then((d) => {
       const items = d.results ?? d;
@@ -143,7 +148,13 @@ export default function MantenimientoEdit() {
       <SectionCard title="Datos generales">
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Técnico responsable" {...f('tecnico_nombre')} />
+            <TextField label="Técnico responsable" select {...f('tecnico')}>
+              {tecnicos.map((t) => (
+                <MenuItem key={t.id} value={t.id}>
+                  {t.full_name || `${t.first_name} ${t.last_name}`} — {t.puesto || 'Técnico'}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField label="Departamento / Área" {...f('departamento_area')} />

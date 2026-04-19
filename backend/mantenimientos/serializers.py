@@ -75,31 +75,43 @@ class FirmaSerializer(serializers.ModelSerializer):
 class MantenimientoListSerializer(serializers.ModelSerializer):
     equipo_codigo = serializers.CharField(source='equipo.codigo_interno', read_only=True)
     equipo_descripcion = serializers.SerializerMethodField()
+    tecnico_nombre = serializers.SerializerMethodField()
 
     class Meta:
         model = Mantenimiento
         fields = [
             'id', 'equipo', 'equipo_codigo', 'equipo_descripcion',
-            'departamento_area', 'tecnico_nombre', 'fecha_ejecucion',
+            'departamento_area', 'tecnico', 'tecnico_nombre', 'fecha_ejecucion',
             'estatus', 'estado_equipo_post', 'created_at',
         ]
 
     def get_equipo_descripcion(self, obj):
         return f"{obj.equipo.marca} {obj.equipo.modelo}"
 
+    def get_tecnico_nombre(self, obj):
+        return obj.tecnico.get_full_name() if obj.tecnico else ''
+
 
 class MantenimientoDetailSerializer(serializers.ModelSerializer):
     documento_pdf_url = serializers.SerializerMethodField()
     firmas = FirmaSerializer(many=True, read_only=True, context={'request': None})
     checklist_respuestas = ChecklistRespuestaSerializer(many=True, read_only=True)
+    tecnico_nombre = serializers.SerializerMethodField()
+    tecnico_username = serializers.SerializerMethodField()
 
     class Meta:
         model = Mantenimiento
         fields = '__all__'
         read_only_fields = [
             'estatus', 'documento_pdf', 'documento_pdf_generado_en',
-            'created_at', 'updated_at',
+            'created_at', 'updated_at', 'tecnico_nombre', 'tecnico_username',
         ]
+
+    def get_tecnico_nombre(self, obj):
+        return obj.tecnico.get_full_name() if obj.tecnico else ''
+
+    def get_tecnico_username(self, obj):
+        return obj.tecnico.username if obj.tecnico else ''
 
     def get_documento_pdf_url(self, obj):
         request = self.context.get('request')

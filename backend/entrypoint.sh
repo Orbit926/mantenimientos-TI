@@ -17,6 +17,24 @@ python manage.py makemigrations --noinput
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 
+echo "Verificando superusuario..."
+python manage.py shell -c "
+from django.contrib.auth import get_user_model
+User = get_user_model()
+if not User.objects.filter(is_superuser=True).exists():
+    User.objects.create_superuser(
+        username='admin',
+        password='admin123',
+        first_name='Administrador',
+        last_name='Sistema',
+        email='admin@chivas.mx',
+        puesto='Administrador del Sistema',
+    )
+    print('✓ Superusuario admin/admin123 creado')
+else:
+    print(f'✓ Superusuario ya existe: {User.objects.filter(is_superuser=True).first().username}')
+"
+
 echo "Verificando checklist items..."
 python manage.py shell -c "
 from mantenimientos.models import ChecklistItem

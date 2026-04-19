@@ -1,5 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
+import ProtectedRoute from '../components/common/ProtectedRoute';
+import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import EquiposList from '../pages/equipos/EquiposList';
 import EquipoNew from '../pages/equipos/EquipoNew';
@@ -11,21 +13,28 @@ import MantenimientoDetail from '../pages/mantenimientos/MantenimientoDetail';
 import MantenimientoEdit from '../pages/mantenimientos/MantenimientoEdit';
 import ProximosMantenimientos from '../pages/ProximosMantenimientos';
 import Historial from '../pages/Historial';
+import TecnicosList from '../pages/tecnicos/TecnicosList';
 
-const wrap = (element) => <AdminLayout>{element}</AdminLayout>;
+const protect = (element, adminOnly = false) => (
+  <ProtectedRoute adminOnly={adminOnly}>
+    <AdminLayout>{element}</AdminLayout>
+  </ProtectedRoute>
+);
 
 const router = createBrowserRouter([
-  { path: '/',                              element: wrap(<Dashboard />) },
-  { path: '/equipos',                       element: wrap(<EquiposList />) },
-  { path: '/equipos/nuevo',                 element: wrap(<EquipoNew />) },
-  { path: '/equipos/:id',                   element: wrap(<EquipoDetail />) },
-  { path: '/equipos/:id/editar',            element: wrap(<EquipoEdit />) },
-  { path: '/mantenimientos',                element: wrap(<MantenimientosList />) },
-  { path: '/mantenimientos/nuevo',          element: wrap(<MantenimientoNew />) },
-  { path: '/mantenimientos/:id',            element: wrap(<MantenimientoDetail />) },
-  { path: '/mantenimientos/:id/editar',     element: wrap(<MantenimientoEdit />) },
-  { path: '/proximos-mantenimientos',       element: wrap(<ProximosMantenimientos />) },
-  { path: '/historial',                     element: wrap(<Historial />) },
+  { path: '/login',                         element: <Login /> },
+  { path: '/',                              element: protect(<Dashboard />) },
+  { path: '/equipos',                       element: protect(<EquiposList />) },
+  { path: '/equipos/nuevo',                 element: protect(<EquipoNew />) },
+  { path: '/equipos/:id',                   element: protect(<EquipoDetail />) },
+  { path: '/equipos/:id/editar',            element: protect(<EquipoEdit />) },
+  { path: '/mantenimientos',                element: protect(<MantenimientosList />) },
+  { path: '/mantenimientos/nuevo',          element: protect(<MantenimientoNew />) },
+  { path: '/mantenimientos/:id',            element: protect(<MantenimientoDetail />) },
+  { path: '/mantenimientos/:id/editar',     element: protect(<MantenimientoEdit />) },
+  { path: '/proximos-mantenimientos',       element: protect(<ProximosMantenimientos />) },
+  { path: '/historial',                     element: protect(<Historial />) },
+  { path: '/tecnicos',                      element: protect(<TecnicosList />, true) },
 ]);
 
 export default router;

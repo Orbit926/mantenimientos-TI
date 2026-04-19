@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 from equipos.models import Equipo
@@ -34,7 +35,12 @@ class Mantenimiento(models.Model):
     equipo = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='mantenimientos')
     departamento_area = models.CharField(max_length=200)
     responsable_area = models.CharField(max_length=200)
-    tecnico_nombre = models.CharField(max_length=200)
+    tecnico = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='mantenimientos',
+        null=True, blank=True,
+    )
     fecha_ejecucion = models.DateField()
     hora_inicio = models.TimeField(null=True, blank=True)
     hora_fin = models.TimeField(null=True, blank=True)

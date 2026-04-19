@@ -27,35 +27,38 @@ import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
 import { mantenimientosService } from '../../services/mantenimientos';
+import { tecnicosService } from '../../services/tecnicos';
 import { formatDate } from '../../utils/formatters';
 import { ESTATUS_MANTENIMIENTO_CHOICES } from '../../utils/constants';
 
 export default function MantenimientosList() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
+  const [tecnicos, setTecnicos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [generatingId, setGeneratingId] = useState(null);
   const [filters, setFilters] = useState({ estatus: '', tecnico: '' });
 
+  useEffect(() => {
+    tecnicosService.list({ activo: 'true' }).then((d) => setTecnicos(d.results ?? d));
+  }, []);
+
   const load = useCallback(() => {
     setLoading(true);
     const params = {};
     if (filters.estatus) params.estatus = filters.estatus;
+    if (filters.tecnico) params.tecnico = filters.tecnico;
     mantenimientosService
       .list(params)
       .then((data) => setItems(data.results ?? data))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [filters.estatus]);
+  }, [filters.estatus, filters.tecnico]);
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = filters.tecnico
-    ? items.filter((m) =>
-        m.tecnico_nombre?.toLowerCase().includes(filters.tecnico.toLowerCase())
-      )
-    : items;
+  const filtered = items;
 
   const handleGenerarPDF = async (id, e) => {
     e.stopPropagation();
@@ -101,11 +104,19 @@ export default function MantenimientosList() {
           </TextField>
           <TextField
             label="Técnico"
+            select
             value={filters.tecnico}
             onChange={(e) => setFilters((p) => ({ ...p, tecnico: e.target.value }))}
             size="small"
-            placeholder="Filtrar por técnico..."
-          />
+            sx={{ minWidth: 220 }}
+          >
+            <MenuItem value="">Todos</MenuItem>
+            {tecnicos.map((t) => (
+              <MenuItem key={t.id} value={t.id}>
+                {t.full_name || `${t.first_name} ${t.last_name}`}
+              </MenuItem>
+            ))}
+          </TextField>
         </Stack>
       </Paper>
 

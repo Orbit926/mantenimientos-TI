@@ -11,9 +11,11 @@ from random import choice, randint, sample
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
+from django.contrib.auth import get_user_model
 from equipos.models import Equipo
 from mantenimientos.models import Mantenimiento, ChecklistItem, ChecklistRespuesta, Firma
-from django.contrib.auth.models import User
+
+Tecnico = get_user_model()
 
 # Limpiar datos existentes
 print("🗑️  Limpiando datos existentes...")
@@ -162,15 +164,25 @@ for i, eq_data in enumerate(equipos_data):
 Equipo.objects.bulk_create(equipos)
 print(f"   ✓ {len(equipos)} equipos creados ({len([e for e in equipos if e.activo])} activos, {len([e for e in equipos if not e.activo])} de baja)")
 
+# ─── TÉCNICOS (Custom User Model) ─────────────────────────────────
+print("\n� Creando técnicos...")
+
+tecnicos_data = [
+    {'username': 'rguzman',  'first_name': 'Roberto',  'last_name': 'Guzmán Silva',    'puesto': 'Técnico de Soporte Senior'},
+    {'username': 'fcastillo','first_name': 'Fernando', 'last_name': 'Castillo Pérez',  'puesto': 'Analista de Infraestructura'},
+    {'username': 'dmoreno',  'first_name': 'Diana',    'last_name': 'Moreno Ortiz',    'puesto': 'Técnica de Redes'},
+    {'username': 'jnavarro', 'first_name': 'Jorge',    'last_name': 'Navarro Ruiz',    'puesto': 'Técnico de Soporte'},
+]
+
+Tecnico.objects.filter(is_superuser=False).delete()
+tecnicos = []
+for td in tecnicos_data:
+    t = Tecnico.objects.create_user(password='tecnico123', **td)
+    tecnicos.append(t)
+print(f"   ✓ {len(tecnicos)} técnicos creados (password: tecnico123)")
+
 # ─── MANTENIMIENTOS ────────────────────────────────────────────────
 print("\n🔧 Creando mantenimientos...")
-
-tecnicos = [
-    'Ing. Roberto Guzmán Silva',
-    'Lic. Fernando Castillo Pérez',
-    'Ing. Diana Moreno Ortiz',
-    'Téc. Jorge Navarro Ruiz',
-]
 
 departamentos = [
     'Tecnología e Innovación',
@@ -193,7 +205,7 @@ for equipo in equipos_activos[:15]:  # Solo primeros 15 para no saturar
         
         # El último mantenimiento puede estar abierto (10% probabilidad)
         es_ultimo = j == num_mants - 1
-        estatus = 'abierto' if (es_ultimo and randint(1, 10) == 1) else 'cerrado'
+        estatus = 'BORRADOR' if (es_ultimo and randint(1, 10) == 1) else 'COMPLETADO'
         
         tecnico = choice(tecnicos)
         depto = choice(departamentos)
@@ -214,7 +226,7 @@ for equipo in equipos_activos[:15]:  # Solo primeros 15 para no saturar
             'N/A - Solo mantenimiento preventivo',
         ])
         
-        estado_post = choice(['operativo', 'operativo_observaciones', 'requiere_seguimiento'])
+        estado_post = choice(['OPERATIVO', 'OPERATIVO_OBSERVACIONES', 'NO_OPERATIVO'])
         
         observaciones = choice([
             'Equipo funcionando correctamente. Sin incidencias.',
@@ -230,7 +242,7 @@ for equipo in equipos_activos[:15]:  # Solo primeros 15 para no saturar
             equipo=equipo,
             departamento_area=depto,
             responsable_area=equipo.colaborador_nombre,
-            tecnico_nombre=tecnico,
+            tecnico=tecnico,
             fecha_ejecucion=fecha_ejec,
             hora_inicio=f"{randint(8, 16):02d}:{choice(['00', '30'])}",
             hora_fin=f"{randint(9, 17):02d}:{choice(['00', '30'])}",
@@ -241,7 +253,7 @@ for equipo in equipos_activos[:15]:  # Solo primeros 15 para no saturar
             riesgo_presentado=riesgo,
             descripcion_riesgo='Sobrecalentamiento detectado durante pruebas de estrés.' if riesgo else '',
             acciones_tomadas='Limpieza profunda de ventiladores y reemplazo de pasta térmica.' if riesgo else '',
-            fecha_sugerida_proximo_mantenimiento=fecha_ejec + timedelta(days=90) if estatus == 'cerrado' else None,
+            fecha_sugerida_proximo_mantenimiento=fecha_ejec + timedelta(days=90) if estatus == 'COMPLETADO' else None,
             estatus=estatus,
         )
         mantenimientos.append(mant)
@@ -253,7 +265,7 @@ print(f"   ✓ {len(mantenimientos)} mantenimientos creados")
 print("\n✅ Agregando checklists y firmas...")
 
 checklist_items_db = list(ChecklistItem.objects.all())
-mantenimientos_cerrados = [m for m in mantenimientos if m.estatus == 'cerrado']
+mantenimientos_cerrados = [m for m in mantenimientos if m.estatus == 'COMPLETADO']
 
 respuestas = []
 firmas = []
@@ -280,8 +292,8 @@ for mant in mantenimientos_cerrados[:20]:  # Solo primeros 20 para no saturar
     firmas.append(Firma(
         mantenimiento=mant,
         tipo_firma='TECNICO',
-        nombre_firmante=mant.tecnico_nombre,
-        cargo_firmante='Técnico de Soporte',
+        nombre_firmante=mant.tecnico.get_full_name(),
+        cargo_firmante=mant.tecnico.puesto or 'Técnico de Soporte',
         firma_imagen='firmas/dummy_firma_tecnico.png',
     ))
     
@@ -307,12 +319,13 @@ print(f"📊 Equipos totales:        {Equipo.objects.count()}")
 print(f"   • Activos:              {Equipo.objects.filter(activo=True).count()}")
 print(f"   • Dados de baja:        {Equipo.objects.filter(activo=False).count()}")
 print(f"🔧 Mantenimientos:         {Mantenimiento.objects.count()}")
-print(f"   • Cerrados:             {Mantenimiento.objects.filter(estatus='cerrado').count()}")
-print(f"   • Abiertos:             {Mantenimiento.objects.filter(estatus='abierto').count()}")
+print(f"   • Completados:          {Mantenimiento.objects.filter(estatus='COMPLETADO').count()}")
+print(f"   • Borradores:           {Mantenimiento.objects.filter(estatus='BORRADOR').count()}")
 print(f"📋 Items de checklist:     {ChecklistItem.objects.count()}")
 print(f"✅ Respuestas checklist:   {ChecklistRespuesta.objects.count()}")
 print(f"✍️  Firmas:                 {Firma.objects.count()}")
 print("="*60)
 print("\n🎉 ¡Base de datos lista para el MVP!")
 print("   Accede a http://localhost/admin para ver los datos")
-print("   Usuario: (crear con 'python manage.py createsuperuser')")
+print("   admin / admin123  (superusuario)")
+print("   rguzman / fcastillo / dmoreno / jnavarro  — password: tecnico123")

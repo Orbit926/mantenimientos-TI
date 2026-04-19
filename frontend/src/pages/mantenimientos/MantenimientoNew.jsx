@@ -25,14 +25,16 @@ import EvidenciaUploader from '../../components/mantenimientos/EvidenciaUploader
 import FileActionButtons from '../../components/common/FileActionButtons';
 import { mantenimientosService } from '../../services/mantenimientos';
 import { equiposService } from '../../services/equipos';
+import { tecnicosService } from '../../services/tecnicos';
 import { ESTADO_EQUIPO_CHOICES } from '../../utils/constants';
 import { todayISO } from '../../utils/formatters';
+import { useAuth } from '../../context/AuthContext';
 
 const INITIAL_FORM = {
   equipo: '',
   departamento_area: '',
   responsable_area: '',
-  tecnico_nombre: '',
+  tecnico: '',
   fecha_ejecucion: todayISO(),
   hora_inicio: '',
   hora_fin: '',
@@ -53,7 +55,9 @@ export default function MantenimientoNew() {
 
   const [form, setForm] = useState({ ...INITIAL_FORM, equipo: equipoIdParam || '' });
   const [equipos, setEquipos] = useState([]);
+  const [tecnicos, setTecnicos] = useState([]);
   const [selectedEquipo, setSelectedEquipo] = useState(null);
+  const { user } = useAuth();
   const [checklistItems, setChecklistItems] = useState([]);
   const [checklistValues, setChecklistValues] = useState({});
   const [evidencias, setEvidencias] = useState([]);
@@ -71,6 +75,14 @@ export default function MantenimientoNew() {
 
   useEffect(() => {
     equiposService.list({ activo: 'true' }).then((d) => setEquipos(d.results ?? d));
+    tecnicosService.list({ activo: 'true' }).then((d) => {
+      const list = d.results ?? d;
+      setTecnicos(list);
+      if (user) {
+        const self = list.find((t) => t.id === user.id);
+        if (self) setForm((p) => ({ ...p, tecnico: self.id }));
+      }
+    });
     mantenimientosService.checklistItems().then((d) => {
       const items = d.results ?? d;
       setChecklistItems(items);
@@ -119,7 +131,7 @@ export default function MantenimientoNew() {
   };
 
   const handleGuardar = async () => {
-    if (!form.equipo || !form.fecha_ejecucion || !form.tecnico_nombre) {
+    if (!form.equipo || !form.fecha_ejecucion || !form.tecnico) {
       setApiError('Equipo, técnico y fecha son obligatorios.');
       return;
     }
@@ -247,7 +259,13 @@ export default function MantenimientoNew() {
             )}
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Técnico responsable *" {...f('tecnico_nombre')} />
+            <TextField label="Técnico responsable *" select {...f('tecnico')}>
+              {tecnicos.map((t) => (
+                <MenuItem key={t.id} value={t.id}>
+                  {t.full_name || `${t.first_name} ${t.last_name}`} — {t.puesto || 'Técnico'}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField label="Departamento / Área" {...f('departamento_area')} />
@@ -365,7 +383,7 @@ export default function MantenimientoNew() {
               ref={firmaTecnicoRef}
               label="Firma del técnico de TI"
               tipoFirma="TECNICO"
-              defaultNombre={form.tecnico_nombre}
+              defaultNombre={tecnicos.find((t) => t.id === form.tecnico)?.full_name || ''}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>

@@ -22,10 +22,18 @@ class ChecklistItemViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class MantenimientoViewSet(viewsets.ModelViewSet):
-    queryset = Mantenimiento.objects.select_related('equipo').all()
+    queryset = Mantenimiento.objects.select_related('equipo', 'tecnico').all()
+
     # 'delete' se permite solo para la acción personalizada de eliminar evidencias.
     # El recurso principal /mantenimientos/{id}/ bloquea DELETE en destroy() más abajo.
     http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        tecnico_id = self.request.query_params.get('tecnico')
+        if tecnico_id:
+            qs = qs.filter(tecnico_id=tecnico_id)
+        return qs
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -62,7 +70,7 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='generar-pdf')
     def generar_pdf(self, request, pk=None):
         mantenimiento = self.get_object()
-        if not mantenimiento.tecnico_nombre or not mantenimiento.fecha_ejecucion:
+        if not mantenimiento.tecnico_id or not mantenimiento.fecha_ejecucion:
             return Response(
                 {'detail': 'El mantenimiento no tiene la información mínima para generar el PDF.'},
                 status=status.HTTP_400_BAD_REQUEST,

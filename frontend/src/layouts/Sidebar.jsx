@@ -13,10 +13,12 @@ import ComputerIcon from '@mui/icons-material/Computer';
 import BuildIcon from '@mui/icons-material/Build';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import HistoryIcon from '@mui/icons-material/History';
+import PeopleIcon from '@mui/icons-material/People';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SIDEBAR_WIDTH } from '../utils/constants';
+import { useAuth } from '../context/AuthContext';
 
-const NAV_ITEMS = [
+const BASE_NAV = [
   { label: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { label: 'Equipos', icon: <ComputerIcon />, path: '/equipos' },
   { label: 'Mantenimientos', icon: <BuildIcon />, path: '/mantenimientos' },
@@ -24,9 +26,15 @@ const NAV_ITEMS = [
   { label: 'Historial', icon: <HistoryIcon />, path: '/historial' },
 ];
 
+const ADMIN_NAV = [
+  { label: 'Técnicos', icon: <PeopleIcon />, path: '/tecnicos' },
+];
+
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const navItems = user?.is_staff ? [...BASE_NAV, ...ADMIN_NAV] : BASE_NAV;
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
@@ -62,7 +70,7 @@ export default function Sidebar() {
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
 
       <List sx={{ px: 1, pt: 1 }}>
-        {NAV_ITEMS.map(({ label, icon, path }) => {
+        {navItems.map(({ label, icon, path }) => {
           const active = isActive(path);
           return (
             <ListItemButton

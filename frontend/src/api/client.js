@@ -5,9 +5,46 @@ const client = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Inject access token on every request
+client.interceptors.request.use((config) => {
+  const access = localStorage.getItem('access');
+  if (access) {
+    config.headers['Authorization'] = `Bearer ${access}`;
+  }
+  return config;
+});
+
+let _refreshing = null; // deduplicate concurrent refresh calls
+
 client.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    const original = err.config;
+
+    if (err.response?.status === 401 && !original._retry) {
+      original._retry = true;
+      try {
+        if (!_refreshing) {
+          _refreshing = (async () => {
+            const refresh = localStorage.getItem('refresh');
+            if (!refresh) throw new Error('No refresh token');
+            const { data } = await axios.post('/api/auth/refresh/', { refresh });
+            localStorage.setItem('access', data.access);
+            if (data.refresh) localStorage.setItem('refresh', data.refresh);
+            return data.access;
+          })().finally(() => { _refreshing = null; });
+        }
+        const newAccess = await _refreshing;
+        original.headers['Authorization'] = `Bearer ${newAccess}`;
+        return client(original);
+      } catch {
+        localStorage.removeItem('access');
+        localStorage.removeItem('refresh');
+        window.location.href = '/login';
+        return Promise.reject(err);
+      }
+    }
+
     const message =
       err.response?.data?.detail ||
       err.response?.data?.non_field_errors?.[0] ||
