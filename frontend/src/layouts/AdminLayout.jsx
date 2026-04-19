@@ -1,6 +1,7 @@
 import { Box, Toolbar } from '@mui/material';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import ChatWidget from '../components/chat/ChatWidget';
 import { SIDEBAR_WIDTH } from '../utils/constants';
 
 export default function AdminLayout({ children }) {
@@ -22,6 +23,7 @@ export default function AdminLayout({ children }) {
           {children}
         </Box>
       </Box>
+      <ChatWidget />
     </Box>
   );
 }
