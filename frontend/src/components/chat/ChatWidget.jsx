@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Box,
   Fab,
@@ -15,7 +15,9 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
-import { sendMessage } from '../../api/chat';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import ImageIcon from '@mui/icons-material/Image';
+import { sendMessage, sendImage } from '../../api/chat';
 
 const BOT_AVATAR = <SmartToyIcon sx={{ fontSize: 18 }} />;
 
@@ -27,18 +29,19 @@ const WELCOME = {
 function Message({ msg }) {
   const isUser = msg.role === 'user';
   const isError = msg.role === 'error';
+  const isImage = msg.role === 'image';
 
   return (
     <Box
       sx={{
         display: 'flex',
-        justifyContent: isUser ? 'flex-end' : 'flex-start',
+        justifyContent: (isUser || isImage) ? 'flex-end' : 'flex-start',
         mb: 1.5,
         alignItems: 'flex-end',
         gap: 1,
       }}
     >
-      {!isUser && (
+      {!isUser && !isImage && (
         <Avatar
           sx={{
             width: 28,
@@ -53,19 +56,27 @@ function Message({ msg }) {
       <Box
         sx={{
           maxWidth: '78%',
-          px: 1.5,
-          py: 1,
-          borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-          bgcolor: isUser ? '#1565c0' : isError ? '#ffebee' : '#f0f4f8',
+          px: isImage ? 0 : 1.5,
+          py: isImage ? 0 : 1,
+          borderRadius: (isUser || isImage) ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+          bgcolor: isUser ? '#1565c0' : isError ? '#ffebee' : isImage ? 'transparent' : '#f0f4f8',
           color: isUser ? '#fff' : isError ? 'error.main' : 'text.primary',
           fontSize: '0.85rem',
           lineHeight: 1.5,
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+          boxShadow: isImage ? 'none' : '0 1px 2px rgba(0,0,0,0.1)',
+          overflow: 'hidden',
         }}
       >
-        {msg.content}
+        {isImage ? (
+          <Box
+            component="img"
+            src={msg.content}
+            alt="imagen adjunta"
+            sx={{ maxWidth: '100%', maxHeight: 200, borderRadius: 2, display: 'block', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
+          />
+        ) : msg.content}
       </Box>
     </Box>
   );
@@ -110,13 +121,53 @@ function TypingIndicator() {
   );
 }
 
+const MIN_W = 300;
+const MAX_W = 800;
+const MIN_H = 360;
+const MAX_H = 900;
+const DEFAULT_W = 380;
+const DEFAULT_H = 520;
+
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([WELCOME]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [size, setSize] = useState({ w: DEFAULT_W, h: DEFAULT_H });
+  const [pendingImage, setPendingImage] = useState(null); // { file, previewUrl }
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const resizeRef = useRef(null); // stores { startX, startY, startW, startH, dir }
+
+  const startResize = useCallback((e, dir) => {
+    e.preventDefault();
+    resizeRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: size.w,
+      startH: size.h,
+      dir,
+    };
+
+    const onMove = (ev) => {
+      const { startX, startY, startW, startH, dir: d } = resizeRef.current;
+      const dx = startX - ev.clientX; // panel crece hacia la izquierda
+      const dy = startY - ev.clientY; // panel crece hacia arriba
+      setSize({
+        w: d.includes('w') ? Math.min(MAX_W, Math.max(MIN_W, startW + dx)) : startW,
+        h: d.includes('h') ? Math.min(MAX_H, Math.max(MIN_H, startH + dy)) : startH,
+      });
+    };
+
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [size.w, size.h]);
 
   useEffect(() => {
     if (open) {
@@ -134,13 +185,47 @@ export default function ChatWidget() {
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || loading) return;
+    const hasImage = !!pendingImage;
+    if ((!text && !hasImage) || loading) return;
 
-    const userMsg = { role: 'user', content: text };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
     setLoading(true);
 
+    // --- envío de imagen ---
+    if (hasImage) {
+      const { file, previewUrl } = pendingImage;
+      // mostrar preview en el chat como mensaje del usuario
+      setMessages((prev) => [
+        ...prev,
+        { role: 'image', content: previewUrl },
+        ...(text ? [{ role: 'user', content: text }] : []),
+      ]);
+      setInput('');
+      setPendingImage(null);
+      try {
+        const data = await sendImage(file, text);
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: data.description },
+        ]);
+      } catch (err) {
+        const apiError = err?.response?.data?.error;
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'error',
+            content: apiError || 'No se pudo analizar la imagen. Intenta nuevamente.',
+          },
+        ]);
+      } finally {
+        setLoading(false);
+        setTimeout(() => inputRef.current?.focus(), 50);
+      }
+      return;
+    }
+
+    // --- envío de texto ---
+    setMessages((prev) => [...prev, { role: 'user', content: text }]);
+    setInput('');
     try {
       const data = await sendMessage(text, historyForApi);
       setMessages((prev) => [
@@ -164,6 +249,19 @@ export default function ChatWidget() {
     }
   };
 
+  const handleImagePick = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    setPendingImage({ file, previewUrl });
+    e.target.value = '';
+  };
+
+  const cancelImage = () => {
+    if (pendingImage) URL.revokeObjectURL(pendingImage.previewUrl);
+    setPendingImage(null);
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -172,9 +270,18 @@ export default function ChatWidget() {
   };
 
   const handleClear = () => {
+    cancelImage();
     setMessages([WELCOME]);
     setInput('');
   };
+
+  const handleReset = () => setSize({ w: DEFAULT_W, h: DEFAULT_H });
+
+  // Returns [sx, onMouseDown] — kept separate so MUI doesn't receive onMouseDown inside sx
+  const handle = (dir, cursor, top, left, right, bottom, width, height) => ({
+    sx: { position: 'absolute', top, left, right, bottom, width, height, cursor, zIndex: 10, userSelect: 'none' },
+    onMouseDown: (e) => startResize(e, dir),
+  });
 
   return (
     <>
@@ -206,14 +313,23 @@ export default function ChatWidget() {
             bottom: 24,
             right: 24,
             zIndex: 1300,
-            width: { xs: 'calc(100vw - 32px)', sm: 380 },
-            height: 520,
+            width: { xs: 'calc(100vw - 32px)', sm: size.w },
+            height: size.h,
             borderRadius: 3,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
           }}
         >
+          {/* ── Resize handles ───────────────────────── */}
+          {/* top edge */}
+          <Box {...handle('h', 'ns-resize', 0, 8, 8, 'auto', 'auto', 6)} />
+          {/* left edge */}
+          <Box {...handle('w', 'ew-resize', 8, 0, 'auto', 8, 6, 'auto')} />
+          {/* top-left corner */}
+          <Box {...handle('wh', 'nwse-resize', 0, 0, 'auto', 'auto', 12, 12)} />
+          {/* top-right corner (resize height only, right edge is fixed) */}
+          <Box {...handle('h', 'ns-resize', 0, 'auto', 0, 'auto', 12, 12)} />
           {/* Header */}
           <Box
             sx={{
@@ -243,6 +359,11 @@ export default function ChatWidget() {
                 <DeleteOutlineIcon fontSize="small" />
               </IconButton>
             </Tooltip>
+            <Tooltip title="Restaurar tamaño">
+              <IconButton size="small" onClick={handleReset} sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { color: '#fff' }, fontSize: '0.7rem', px: 0.5 }}>
+                <Typography variant="caption" sx={{ lineHeight: 1, fontWeight: 700, letterSpacing: 0 }}>⊡</Typography>
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Cerrar">
               <IconButton size="small" onClick={() => setOpen(false)} sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { color: '#fff' } }}>
                 <CloseIcon fontSize="small" />
@@ -269,25 +390,89 @@ export default function ChatWidget() {
             <div ref={bottomRef} />
           </Box>
 
+          {/* Image preview strip */}
+          {pendingImage && (
+            <Box
+              sx={{
+                px: 1.5,
+                pt: 1,
+                pb: 0,
+                bgcolor: '#fff',
+                borderTop: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                flexShrink: 0,
+              }}
+            >
+              <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                <Box
+                  component="img"
+                  src={pendingImage.previewUrl}
+                  alt="preview"
+                  sx={{ height: 56, borderRadius: 1.5, objectFit: 'cover', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
+                />
+                <IconButton
+                  size="small"
+                  onClick={cancelImage}
+                  sx={{
+                    position: 'absolute', top: -6, right: -6,
+                    bgcolor: '#455a64', color: '#fff', width: 18, height: 18,
+                    '&:hover': { bgcolor: '#263238' },
+                  }}
+                >
+                  <CloseIcon sx={{ fontSize: 11 }} />
+                </IconButton>
+              </Box>
+              <Typography variant="caption" color="text.secondary">
+                Escribe un comentario opcional y envía
+              </Typography>
+            </Box>
+          )}
+
           {/* Input */}
           <Box
             sx={{
               px: 1.5,
               py: 1,
-              borderTop: '1px solid #e0e0e0',
+              borderTop: pendingImage ? 'none' : '1px solid #e0e0e0',
               bgcolor: '#fff',
               display: 'flex',
-              gap: 1,
+              gap: 0.5,
               alignItems: 'flex-end',
               flexShrink: 0,
             }}
           >
+            {/* hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              style={{ display: 'none' }}
+              onChange={handleImagePick}
+            />
+            <Tooltip title="Adjuntar imagen">
+              <IconButton
+                size="small"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading || !!pendingImage}
+                sx={{
+                  color: pendingImage ? '#1565c0' : '#90a4ae',
+                  '&:hover': { color: '#1565c0' },
+                  '&.Mui-disabled': { color: '#e0e0e0' },
+                  flexShrink: 0,
+                  mb: 0.25,
+                }}
+              >
+                {pendingImage ? <ImageIcon fontSize="small" /> : <AttachFileIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
             <TextField
               inputRef={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Escribe un mensaje..."
+              placeholder={pendingImage ? 'Comentario opcional...' : 'Escribe un mensaje...'}
               multiline
               maxRows={4}
               size="small"
@@ -302,7 +487,7 @@ export default function ChatWidget() {
             />
             <IconButton
               onClick={handleSend}
-              disabled={!input.trim() || loading}
+              disabled={(!input.trim() && !pendingImage) || loading}
               sx={{
                 bgcolor: '#1565c0',
                 color: '#fff',
