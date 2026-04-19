@@ -7,14 +7,19 @@ Sistema web completo para la administración y seguimiento de mantenimientos de 
 ### Backend
 - **Django 5.2** + Django REST Framework
 - **PostgreSQL 16** como base de datos
+- **JWT** (Simple JWT) para autenticación
 - **xhtml2pdf** para generación de PDFs
+- **Ollama** (gemma4:e4b) para chatbot IA con tool-calling y visión
 - **Docker** para containerización
 
 ### Frontend
-- **React 19** con Vite
+- **React 19** con Vite 8
 - **Material UI v9** para componentes
-- **React Router** para navegación
+- **React Router 7** para navegación
 - **Axios** para consumo de API
+- **Recharts** para gráficas y analytics
+- **react-signature-canvas** para firmas digitales
+- **react-markdown** para renderizado de respuestas del chatbot
 
 ## 📦 Inicio Rápido
 
@@ -65,6 +70,7 @@ docker compose exec backend python manage.py createsuperuser
 | **Backend API** | http://localhost/api/ | Django REST API |
 | **Django Admin** | http://localhost/admin/ | Panel administrativo |
 | **Backend directo** | http://localhost:8000 | Django dev server (solo desarrollo) |
+| **Ollama** | http://localhost:11434 | Servidor LLM (debe correr en el host) |
 
 ## 📊 Datos de Prueba Incluidos
 
@@ -126,23 +132,29 @@ mantenimientos/
 │   ├── config/              # Settings, URLs principales
 │   ├── equipos/             # App de equipos
 │   ├── mantenimientos/      # App de mantenimientos
-│   ├── dashboard/           # App de métricas
+│   ├── dashboard/           # App de métricas y analytics
+│   ├── usuarios/            # App de autenticación (JWT) y técnicos
+│   ├── chat/                # Chatbot IA (Ollama + tool-calling)
+│   │   ├── tools/           # Registry, executor y tools de negocio
+│   │   ├── orchestrator.py  # Loop de orquestación agente
+│   │   └── ollama_client.py # Cliente HTTP para Ollama
 │   ├── templates/pdf/       # Template HTML para PDFs
 │   ├── seed_data.py         # Script de datos de prueba
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── api/             # Cliente Axios
-│   │   ├── components/      # Componentes reutilizables
+│   │   ├── api/             # Cliente Axios + servicios de chat
+│   │   ├── components/      # Componentes reutilizables + ChatWidget
 │   │   ├── layouts/         # Layout principal + sidebar
 │   │   ├── pages/           # Páginas de la app
 │   │   ├── routes/          # Configuración de rutas
-│   │   ├── services/        # Servicios de API
+│   │   ├── services/        # Servicios de API por módulo
 │   │   ├── utils/           # Constantes y formatters
-│   │   └── theme.js         # Tema MUI
-│   ├── nginx.conf           # Config nginx con proxy
+│   │   └── theme.js         # Tema MUI personalizado
+│   ├── nginx.conf           # Config nginx con proxy a backend
 │   └── package.json
 ├── docker-compose.yml
+├── CHATBOT_DOCS.md          # Documentación detallada del chatbot
 └── .env.example
 ```
 
@@ -161,12 +173,30 @@ mantenimientos/
 - ✅ Registro de actividades y materiales
 - ✅ Captura de firmas digitales (técnico + usuario)
 - ✅ Generación automática de PDF
-- ✅ Estados: abierto / cerrado
+- ✅ Estados: borrador → pendiente firma técnico → pendiente firma usuario → completado
 
 ### Dashboard
 - ✅ Métricas clave (equipos activos, mantenimientos, próximos, vencidos)
 - ✅ Tabla de próximos mantenimientos
 - ✅ Historial de mantenimientos recientes
+
+### Analytics
+- ✅ Gráficas de mantenimientos por mes
+- ✅ Distribución por técnico y estatus
+- ✅ Métricas de riesgo
+
+### Chatbot IA
+- ✅ Asistente conversacional con Ollama (gemma4:e4b)
+- ✅ Tool-calling automático para consultar datos en tiempo real
+- ✅ 16 herramientas de negocio (búsqueda, estadísticas, programación)
+- ✅ Análisis de imágenes (modelo multimodal)
+- ✅ Historial de conversación en sesión
+- ✅ Documentación completa en `CHATBOT_DOCS.md`
+
+### Gestión de Técnicos
+- ✅ Alta, edición y listado de técnicos
+- ✅ Asignación a mantenimientos
+- ✅ Vista de carga de trabajo
 
 ### Reportes
 - ✅ Historial con filtros avanzados
@@ -175,12 +205,37 @@ mantenimientos/
 
 ## 🔐 Seguridad
 
+- Autenticación JWT (access + refresh tokens)
 - Variables de entorno para secretos (`.env` no versionado)
 - CORS configurado para desarrollo
 - Django Secret Key rotable
 - PostgreSQL con credenciales configurables
 
-## 📝 Notas de Producción
+## � API Endpoints
+
+Todos bajo el prefijo `/api/`.
+
+| Módulo | Endpoint | Método | Descripción |
+|---|---|---|---|
+| **Auth** | `/api/auth/login/` | POST | Login → access + refresh tokens |
+| | `/api/auth/refresh/` | POST | Renovar access token |
+| | `/api/auth/logout/` | POST | Invalidar refresh token |
+| | `/api/auth/me/` | GET | Usuario autenticado |
+| | `/api/auth/register/` | POST | Registrar nuevo usuario |
+| **Equipos** | `/api/equipos/` | GET/POST | CRUD de equipos (ViewSet) |
+| | `/api/equipos/{id}/` | GET/PUT/PATCH/DELETE | Detalle de equipo |
+| **Mantenimientos** | `/api/mantenimientos/` | GET/POST | CRUD de mantenimientos (ViewSet) |
+| | `/api/mantenimientos/{id}/` | GET/PUT/PATCH/DELETE | Detalle de mantenimiento |
+| | `/api/checklist-items/` | GET/POST | Items de checklist |
+| **Técnicos** | `/api/tecnicos/` | GET/POST | CRUD de técnicos (ViewSet) |
+| **Dashboard** | `/api/dashboard/resumen/` | GET | Métricas principales |
+| | `/api/dashboard/proximos-mantenimientos/` | GET | Próximos mantenimientos |
+| | `/api/dashboard/mantenimientos-realizados/` | GET | Mantenimientos recientes |
+| | `/api/analytics/` | GET | Datos para gráficas |
+| **Chatbot** | `/api/chat/` | POST | Conversación de texto |
+| | `/api/chat/imagen/` | POST | Análisis de imagen (multipart) |
+
+## �📝 Notas de Producción
 
 Para despliegue en producción:
 
@@ -190,6 +245,7 @@ Para despliegue en producción:
 4. Configurar volumen persistente para `media/` (firmas y PDFs)
 5. Usar nginx con SSL/TLS
 6. Configurar backup automático de PostgreSQL
+7. Asegurar que Ollama esté accesible (`OLLAMA_URL`) y el modelo descargado
 
 ## 📞 Soporte
 
@@ -197,6 +253,7 @@ Para dudas o problemas:
 - Revisar logs: `docker compose logs -f`
 - Verificar estado: `docker compose ps`
 - Reiniciar servicios: `docker compose restart`
+- Documentación del chatbot: `CHATBOT_DOCS.md`
 
 ---
 
