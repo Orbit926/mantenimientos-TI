@@ -18,10 +18,17 @@ const EQUIPO_ACTIVO_CONFIG = {
   false: { label: 'Baja',      color: 'error' },
 };
 
+const EQUIPO_ESTADO_CONFIG = {
+  ACTIVO:     { label: 'Activo',      color: 'success' },
+  DISPONIBLE: { label: 'Disponible',  color: 'info' },
+  BAJA:       { label: 'Baja',        color: 'error' },
+};
+
 export default function StatusChip({ type = 'estatus', value, size = 'small' }) {
   const map =
     type === 'estatus' ? ESTATUS_CONFIG :
     type === 'estado_equipo' ? ESTADO_EQUIPO_CONFIG :
+    type === 'equipo_estado' ? EQUIPO_ESTADO_CONFIG :
     EQUIPO_ACTIVO_CONFIG;
 
   const cfg = map[String(value)] ?? { label: value || '—', color: 'default' };

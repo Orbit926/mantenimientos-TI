@@ -22,36 +22,64 @@ class EquipoViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         params = self.request.query_params
 
-        activo = params.get('activo')
-        if activo is not None:
-            qs = qs.filter(activo=activo.lower() == 'true')
+        estado = params.get('estado')
+        if estado:
+            qs = qs.filter(estado=estado.upper())
+        else:
+            # legacy: activo=true/false kept for backward compat
+            activo = params.get('activo')
+            if activo is not None:
+                if activo.lower() == 'true':
+                    qs = qs.exclude(estado='BAJA')
+                else:
+                    qs = qs.filter(estado='BAJA')
 
         if params.get('proximo') == 'true':
             hoy = date.today()
             qs = qs.filter(
-                activo=True,
                 fecha_proximo_mantenimiento__gte=hoy,
                 fecha_proximo_mantenimiento__lte=hoy + timedelta(days=30),
-            )
+            ).exclude(estado='BAJA')
 
         if params.get('vencido') == 'true':
             qs = qs.filter(
-                activo=True,
                 fecha_proximo_mantenimiento__lt=date.today(),
-            )
+            ).exclude(estado='BAJA')
 
         return qs
+
+    def _sync_estado(self, equipo):
+        """Sincroniza campo estado y activo basándose en colaborador_nombre."""
+        if equipo.estado == 'BAJA':
+            return
+        if equipo.colaborador_nombre:
+            equipo.estado = 'ACTIVO'
+            equipo.activo = True
+        else:
+            equipo.estado = 'DISPONIBLE'
+            equipo.activo = True
+
+    def perform_create(self, serializer):
+        equipo = serializer.save()
+        self._sync_estado(equipo)
+        equipo.save(update_fields=['estado', 'activo'])
+
+    def perform_update(self, serializer):
+        equipo = serializer.save()
+        self._sync_estado(equipo)
+        equipo.save(update_fields=['estado', 'activo', 'updated_at'])
 
     @action(detail=True, methods=['post'])
     def baja(self, request, pk=None):
         equipo = self.get_object()
-        if not equipo.activo:
+        if equipo.estado == 'BAJA':
             return Response(
                 {'detail': 'El equipo ya está dado de baja.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         serializer = EquipoBajaSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        equipo.estado = 'BAJA'
         equipo.activo = False
         equipo.fecha_baja = timezone.now().date()
         equipo.motivo_baja = serializer.validated_data['motivo_baja']

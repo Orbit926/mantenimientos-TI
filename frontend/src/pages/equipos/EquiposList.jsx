@@ -34,10 +34,12 @@ import { formatDate } from '../../utils/formatters';
 import { TIPO_EQUIPO_MAP } from '../../utils/constants';
 
 const FILTROS = [
-  { value: 'activos', label: 'Activos' },
-  { value: 'inactivos', label: 'Baja' },
-  { value: 'proximos', label: 'Próximos' },
-  { value: 'vencidos', label: 'Vencidos' },
+  { value: 'todos',       label: 'Todos' },
+  { value: 'activos',     label: 'Activos' },
+  { value: 'disponibles', label: 'Disponibles' },
+  { value: 'inactivos',   label: 'Baja' },
+  { value: 'proximos',    label: 'Próximos' },
+  { value: 'vencidos',    label: 'Vencidos' },
 ];
 
 export default function EquiposList() {
@@ -55,10 +57,11 @@ export default function EquiposList() {
     setLoading(true);
     setError('');
     const params = {};
-    if (filtro === 'activos') params.activo = 'true';
-    if (filtro === 'inactivos') params.activo = 'false';
-    if (filtro === 'proximos') params.proximo = 'true';
-    if (filtro === 'vencidos') params.vencido = 'true';
+    if (filtro === 'activos')     params.estado = 'ACTIVO';
+    if (filtro === 'disponibles') params.estado = 'DISPONIBLE';
+    if (filtro === 'inactivos')   params.estado = 'BAJA';
+    if (filtro === 'proximos')    params.proximo = 'true';
+    if (filtro === 'vencidos')    params.vencido = 'true';
     equiposService
       .list(params)
       .then((data) => setEquipos(data.results ?? data))
@@ -74,7 +77,7 @@ export default function EquiposList() {
           e.codigo_interno.toLowerCase().includes(search.toLowerCase()) ||
           e.marca.toLowerCase().includes(search.toLowerCase()) ||
           e.modelo.toLowerCase().includes(search.toLowerCase()) ||
-          e.colaborador_nombre.toLowerCase().includes(search.toLowerCase()) ||
+          (e.colaborador_nombre || '').toLowerCase().includes(search.toLowerCase()) ||
           (e.ubicacion || '').toLowerCase().includes(search.toLowerCase())
       )
     : equipos;
@@ -180,14 +183,18 @@ export default function EquiposList() {
                     </Typography>
                   </TableCell>
                   <TableCell><Typography variant="body2">{eq.ubicacion}</Typography></TableCell>
-                  <TableCell><Typography variant="body2">{eq.colaborador_nombre}</Typography></TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color={eq.colaborador_nombre ? 'text.primary' : 'text.disabled'}>
+                      {eq.colaborador_nombre || 'Sin asignar'}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     <Typography variant="body2">
                       {formatDate(eq.fecha_proximo_mantenimiento)}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <StatusChip type="activo" value={eq.activo} />
+                    <StatusChip type="equipo_estado" value={eq.estado} />
                   </TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={0.5} justifyContent="flex-end">

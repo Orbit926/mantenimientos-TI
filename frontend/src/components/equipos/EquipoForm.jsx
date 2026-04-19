@@ -45,7 +45,7 @@ export default function EquipoForm({ values, onChange, errors = {} }) {
       </Grid>
 
       <Grid size={{ xs: 12, md: 4 }}>
-        <TextField label="Nombre del colaborador *" {...field('colaborador_nombre')} />
+        <TextField label="Nombre del colaborador" {...field('colaborador_nombre')} helperText={errors['colaborador_nombre'] || 'Opcional — si no hay colaborador el equipo quedará como Disponible'} />
       </Grid>
       <Grid size={{ xs: 12, md: 4 }}>
         <TextField label="Correo del colaborador" type="email" {...field('colaborador_correo')} />

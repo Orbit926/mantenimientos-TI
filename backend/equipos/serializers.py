@@ -7,7 +7,7 @@ class EquipoListSerializer(serializers.ModelSerializer):
         model = Equipo
         fields = [
             'id', 'codigo_interno', 'marca', 'modelo', 'tipo_equipo',
-            'ubicacion', 'colaborador_nombre', 'activo',
+            'ubicacion', 'colaborador_nombre', 'estado', 'activo',
             'fecha_ultimo_mantenimiento', 'fecha_proximo_mantenimiento',
         ]
 
@@ -17,7 +17,7 @@ class EquipoDetailSerializer(serializers.ModelSerializer):
         model = Equipo
         fields = '__all__'
         read_only_fields = [
-            'fecha_alta', 'fecha_baja', 'motivo_baja',
+            'estado', 'activo', 'fecha_alta', 'fecha_baja', 'motivo_baja',
             'fecha_ultimo_mantenimiento',
             'created_at', 'updated_at',
         ]

@@ -19,7 +19,7 @@ const INITIAL = {
   fecha_proximo_mantenimiento: '',
 };
 
-const REQUIRED = ['codigo_interno', 'marca', 'modelo', 'tipo_equipo', 'ubicacion', 'colaborador_nombre'];
+const REQUIRED = ['codigo_interno', 'marca', 'modelo', 'tipo_equipo', 'ubicacion'];
 
 export default function EquipoNew() {
   const navigate = useNavigate();

@@ -2,6 +2,12 @@ from django.db import models
 
 
 class Equipo(models.Model):
+    ESTADO_CHOICES = [
+        ('ACTIVO', 'Activo'),
+        ('DISPONIBLE', 'Disponible'),
+        ('BAJA', 'Baja'),
+    ]
+
     TIPO_CHOICES = [
         ('LAPTOP', 'Laptop'),
         ('DESKTOP', 'Desktop'),
@@ -17,10 +23,11 @@ class Equipo(models.Model):
     numero_serie = models.CharField(max_length=100, blank=True)
     tipo_equipo = models.CharField(max_length=50, choices=TIPO_CHOICES)
     ubicacion = models.CharField(max_length=200)
-    colaborador_nombre = models.CharField(max_length=200)
+    colaborador_nombre = models.CharField(max_length=200, blank=True)
     colaborador_correo = models.EmailField(blank=True)
     colaborador_puesto = models.CharField(max_length=200, blank=True)
-    activo = models.BooleanField(default=True)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='DISPONIBLE')
+    activo = models.BooleanField(default=True)  # kept for backward-compat queries
     fecha_alta = models.DateField(auto_now_add=True)
     fecha_baja = models.DateField(null=True, blank=True)
     motivo_baja = models.TextField(null=True, blank=True)

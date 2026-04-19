@@ -23,17 +23,15 @@ class DashboardResumenView(APIView):
         primer_dia_mes = hoy.replace(day=1)
 
         return Response({
-            'total_equipos_activos': Equipo.objects.filter(activo=True).count(),
-            'total_equipos_baja': Equipo.objects.filter(activo=False).count(),
+            'total_equipos_activos': Equipo.objects.exclude(estado='BAJA').count(),
+            'total_equipos_baja': Equipo.objects.filter(estado='BAJA').count(),
             'mantenimientos_proximos': Equipo.objects.filter(
-                activo=True,
                 fecha_proximo_mantenimiento__gte=hoy,
                 fecha_proximo_mantenimiento__lte=limite_proximo,
-            ).count(),
+            ).exclude(estado='BAJA').count(),
             'mantenimientos_vencidos': Equipo.objects.filter(
-                activo=True,
                 fecha_proximo_mantenimiento__lt=hoy,
-            ).count(),
+            ).exclude(estado='BAJA').count(),
             'mantenimientos_completados_mes': Mantenimiento.objects.filter(
                 estatus='COMPLETADO',
                 fecha_ejecucion__gte=primer_dia_mes,
@@ -46,9 +44,8 @@ class DashboardProximosView(APIView):
         hoy = date.today()
         limite = hoy + timedelta(days=_DIAS_PROXIMO)
         equipos = Equipo.objects.filter(
-            activo=True,
             fecha_proximo_mantenimiento__lte=limite,
-        ).order_by('fecha_proximo_mantenimiento')
+        ).exclude(estado='BAJA').order_by('fecha_proximo_mantenimiento')
         return Response(EquipoListSerializer(equipos, many=True).data)
 
 
@@ -78,15 +75,14 @@ class AnalyticsView(APIView):
         borradores = qs_all.filter(estatus='BORRADOR').count()
         este_mes = qs_completados.filter(fecha_ejecucion__gte=primer_dia_mes).count()
 
-        equipos_activos = Equipo.objects.filter(activo=True).count()
+        equipos_activos = Equipo.objects.exclude(estado='BAJA').count()
         equipos_vencidos = Equipo.objects.filter(
-            activo=True, fecha_proximo_mantenimiento__lt=hoy
-        ).count()
+            fecha_proximo_mantenimiento__lt=hoy,
+        ).exclude(estado='BAJA').count()
         equipos_a_tiempo = Equipo.objects.filter(
-            activo=True,
             fecha_proximo_mantenimiento__gte=hoy,
             fecha_proximo_mantenimiento__lte=hoy + timedelta(days=30),
-        ).count()
+        ).exclude(estado='BAJA').count()
 
         pct_a_tiempo = round(
             ((equipos_activos - equipos_vencidos) / equipos_activos * 100)
