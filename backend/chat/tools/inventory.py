@@ -671,6 +671,82 @@ def listar_tecnicos_activos(arguments: dict) -> dict:
     }
 
 
+# ─── programar_mantenimiento ──────────────────────────────────────
+
+@register(
+    name='programar_mantenimiento',
+    description=(
+        'Programa la fecha del próximo mantenimiento de un equipo. '
+        'Actualiza el campo fecha_proximo_mantenimiento para que aparezca en el apartado de Próximos Mantenimientos. '
+        'No crea ningún registro de mantenimiento, solo agenda la fecha.'
+    ),
+    parameters={
+        'equipo_id': {
+            'type': 'integer',
+            'description': 'ID numérico del equipo',
+            'required': True,
+        },
+        'fecha': {
+            'type': 'string',
+            'description': 'Fecha del próximo mantenimiento en formato YYYY-MM-DD (ej: 2025-06-15)',
+            'required': True,
+        },
+    },
+)
+def programar_mantenimiento(arguments: dict) -> dict:
+    from datetime import datetime
+    from equipos.models import Equipo
+
+    # ── equipo ───────────────────────────────────────────────────────
+    try:
+        equipo_id = int(arguments.get('equipo_id') or 0)
+    except (TypeError, ValueError):
+        return {'error': 'El parámetro equipo_id debe ser un número entero.'}
+    if not equipo_id:
+        return {'error': 'El parámetro equipo_id es requerido.'}
+
+    try:
+        equipo = Equipo.objects.get(pk=equipo_id)
+    except Equipo.DoesNotExist:
+        return {'error': f'No existe ningún equipo con id={equipo_id}.'}
+
+    if equipo.estado == 'BAJA':
+        return {'error': f'El equipo {equipo.codigo_interno} está dado de baja y no se le puede programar mantenimiento.'}
+
+    # ── fecha ─────────────────────────────────────────────────────────
+    fecha_str = (arguments.get('fecha') or '').strip()
+    if not fecha_str:
+        return {'error': 'El parámetro fecha es requerido (formato YYYY-MM-DD).'}
+    try:
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+    except ValueError:
+        return {'error': f'Formato de fecha inválido: "{fecha_str}". Usa YYYY-MM-DD.'}
+
+    if fecha < date.today():
+        return {'error': f'La fecha {fecha_str} ya pasó. Indica una fecha futura.'}
+
+    logger.info(
+        "[Tool] programar_mantenimiento equipo=%s fecha=%s",
+        equipo.codigo_interno, fecha_str,
+    )
+
+    fecha_anterior = equipo.fecha_proximo_mantenimiento
+    equipo.fecha_proximo_mantenimiento = fecha
+    equipo.save(update_fields=['fecha_proximo_mantenimiento'])
+
+    return {
+        'ok': True,
+        'equipo': f"{equipo.codigo_interno} — {equipo.marca} {equipo.modelo}",
+        'fecha_anterior': fecha_anterior.isoformat() if fecha_anterior else None,
+        'fecha_programada': fecha_str,
+        'mensaje': (
+            f'Próximo mantenimiento del equipo {equipo.codigo_interno} '
+            f'programado para el {fecha_str}. '
+            f'Ya aparece en el apartado de Próximos Mantenimientos.'
+        ),
+    }
+
+
 # ─── listar_colaboradores_con_equipo ─────────────────────────────
 
 @register(
