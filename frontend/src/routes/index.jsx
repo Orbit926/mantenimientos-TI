@@ -1,24 +1,38 @@
+import { Suspense, lazy } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
+import { CircularProgress, Box } from '@mui/material';
 import AdminLayout from '../layouts/AdminLayout';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
-import EquiposList from '../pages/equipos/EquiposList';
-import EquipoNew from '../pages/equipos/EquipoNew';
-import EquipoDetail from '../pages/equipos/EquipoDetail';
-import EquipoEdit from '../pages/equipos/EquipoEdit';
-import MantenimientosList from '../pages/mantenimientos/MantenimientosList';
-import MantenimientoNew from '../pages/mantenimientos/MantenimientoNew';
-import MantenimientoDetail from '../pages/mantenimientos/MantenimientoDetail';
-import MantenimientoEdit from '../pages/mantenimientos/MantenimientoEdit';
-import ProximosMantenimientos from '../pages/ProximosMantenimientos';
-import Historial from '../pages/Historial';
-import TecnicosList from '../pages/tecnicos/TecnicosList';
-import Analytics from '../pages/Analytics';
+
+// Lazy-loaded pages for code-splitting
+const EquiposList = lazy(() => import('../pages/equipos/EquiposList'));
+const EquipoNew = lazy(() => import('../pages/equipos/EquipoNew'));
+const EquipoDetail = lazy(() => import('../pages/equipos/EquipoDetail'));
+const EquipoEdit = lazy(() => import('../pages/equipos/EquipoEdit'));
+const MantenimientosList = lazy(() => import('../pages/mantenimientos/MantenimientosList'));
+const MantenimientoNew = lazy(() => import('../pages/mantenimientos/MantenimientoNew'));
+const MantenimientoDetail = lazy(() => import('../pages/mantenimientos/MantenimientoDetail'));
+const MantenimientoEdit = lazy(() => import('../pages/mantenimientos/MantenimientoEdit'));
+const ProximosMantenimientos = lazy(() => import('../pages/ProximosMantenimientos'));
+const Historial = lazy(() => import('../pages/Historial'));
+const TecnicosList = lazy(() => import('../pages/tecnicos/TecnicosList'));
+const Analytics = lazy(() => import('../pages/Analytics'));
+
+const PageLoader = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+    <CircularProgress />
+  </Box>
+);
 
 const protect = (element, adminOnly = false) => (
   <ProtectedRoute adminOnly={adminOnly}>
-    <AdminLayout>{element}</AdminLayout>
+    <AdminLayout>
+      <Suspense fallback={<PageLoader />}>
+        {element}
+      </Suspense>
+    </AdminLayout>
   </ProtectedRoute>
 );
 
@@ -37,6 +51,12 @@ const router = createBrowserRouter([
   { path: '/historial',                     element: protect(<Historial />) },
   { path: '/tecnicos',                      element: protect(<TecnicosList />, true) },
   { path: '/analytics',                     element: protect(<Analytics />) },
-]);
+],
+{
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true,
+  },
+});
 
 export default router;
