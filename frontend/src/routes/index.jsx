@@ -14,6 +14,7 @@ import MantenimientoEdit from '../pages/mantenimientos/MantenimientoEdit';
 import ProximosMantenimientos from '../pages/ProximosMantenimientos';
 import Historial from '../pages/Historial';
 import TecnicosList from '../pages/tecnicos/TecnicosList';
+import Analytics from '../pages/Analytics';
 
 const protect = (element, adminOnly = false) => (
   <ProtectedRoute adminOnly={adminOnly}>
@@ -35,6 +36,7 @@ const router = createBrowserRouter([
   { path: '/proximos-mantenimientos',       element: protect(<ProximosMantenimientos />) },
   { path: '/historial',                     element: protect(<Historial />) },
   { path: '/tecnicos',                      element: protect(<TecnicosList />, true) },
+  { path: '/analytics',                     element: protect(<Analytics />) },
 ]);
 
 export default router;

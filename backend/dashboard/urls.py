@@ -1,9 +1,10 @@
 from django.urls import path
 
-from .views import DashboardProximosView, DashboardRealizadosView, DashboardResumenView
+from .views import AnalyticsView, DashboardProximosView, DashboardRealizadosView, DashboardResumenView
 
 urlpatterns = [
     path('dashboard/resumen/', DashboardResumenView.as_view()),
     path('dashboard/proximos-mantenimientos/', DashboardProximosView.as_view()),
     path('dashboard/mantenimientos-realizados/', DashboardRealizadosView.as_view()),
+    path('analytics/', AnalyticsView.as_view()),
 ]

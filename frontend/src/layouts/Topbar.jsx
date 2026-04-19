@@ -17,6 +17,7 @@ const PAGE_TITLES = {
   '/proximos-mantenimientos': 'Próximos mantenimientos',
   '/historial': 'Historial',
   '/tecnicos': 'Técnicos',
+  '/analytics': 'Analytics',
 };
 
 function resolveTitle(pathname) {

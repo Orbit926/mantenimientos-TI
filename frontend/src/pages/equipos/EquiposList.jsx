@@ -167,7 +167,7 @@ export default function EquiposList() {
               </TableRow>
             ) : (
               filtered.map((eq) => (
-                <TableRow key={eq.id} hover>
+                <TableRow key={eq.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/equipos/${eq.id}`)}>
                   <TableCell>
                     <Typography variant="body2" fontWeight={600}>{eq.codigo_interno}</Typography>
                   </TableCell>
@@ -210,13 +210,6 @@ export default function EquiposList() {
                           <BuildIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      {eq.activo && (
-                        <Tooltip title="Dar de baja">
-                          <IconButton size="small" color="error" onClick={() => setBajaTarget(eq)}>
-                            <BlockIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
                     </Stack>
                   </TableCell>
                 </TableRow>

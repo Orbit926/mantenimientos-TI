@@ -14,6 +14,7 @@ import BuildIcon from '@mui/icons-material/Build';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import HistoryIcon from '@mui/icons-material/History';
 import PeopleIcon from '@mui/icons-material/People';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SIDEBAR_WIDTH } from '../utils/constants';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +25,7 @@ const BASE_NAV = [
   { label: 'Mantenimientos', icon: <BuildIcon />, path: '/mantenimientos' },
   { label: 'Próximos', icon: <ScheduleIcon />, path: '/proximos-mantenimientos' },
   { label: 'Historial', icon: <HistoryIcon />, path: '/historial' },
+  { label: 'Analytics', icon: <BarChartIcon />, path: '/analytics' },
 ];
 
 const ADMIN_NAV = [
