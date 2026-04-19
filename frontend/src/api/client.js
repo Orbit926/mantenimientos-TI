@@ -45,6 +45,11 @@ client.interceptors.response.use(
       }
     }
 
+    if (err.response?.status === 413) {
+      const error413 = new Error('El archivo es demasiado grande. El límite máximo es 15 MB.');
+      return Promise.reject(error413);
+    }
+
     const message =
       err.response?.data?.detail ||
       err.response?.data?.non_field_errors?.[0] ||

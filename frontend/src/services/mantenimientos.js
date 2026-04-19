@@ -24,6 +24,8 @@ export const mantenimientosService = {
     }).then(r => r.data),
 
   checklistItems: () => client.get('/checklist-items/').then(r => r.data),
+  actividadesCatalogo: () => client.get('/actividades-catalogo/').then(r => r.data),
+  materialesCatalogo: () => client.get('/materiales-catalogo/').then(r => r.data),
 
   // Evidencias (fotos del estado del equipo)
   getEvidencias: (id) => client.get(`/mantenimientos/${id}/evidencias/`).then(r => r.data),

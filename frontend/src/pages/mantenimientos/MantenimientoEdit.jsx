@@ -20,6 +20,7 @@ import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
 import ChecklistGroup from '../../components/mantenimientos/ChecklistGroup';
 import SignaturePad from '../../components/mantenimientos/SignaturePad';
+import CatalogoCheckboxList from '../../components/mantenimientos/CatalogoCheckboxList';
 import EvidenciaUploader from '../../components/mantenimientos/EvidenciaUploader';
 import FileActionButtons from '../../components/common/FileActionButtons';
 import { mantenimientosService } from '../../services/mantenimientos';
@@ -54,6 +55,11 @@ export default function MantenimientoEdit() {
   const [firmaDefaults, setFirmaDefaults] = useState({ tecnico: { nombre: '', cargo: '' }, usuario: { nombre: '', cargo: '' } });
   const [firmasGuardadas, setFirmasGuardadas] = useState({ TECNICO: false, USUARIO: false });
   const [firmaImagenes, setFirmaImagenes] = useState({ TECNICO: '', USUARIO: '' });
+  const [actividadesCatalogo, setActividadesCatalogo] = useState([]);
+  const [materialesCatalogo, setMaterialesCatalogo] = useState([]);
+  const [loadingCatalogos, setLoadingCatalogos] = useState(true);
+  const [actividadesSeleccionadas, setActividadesSeleccionadas] = useState([]);
+  const [materialesSeleccionados, setMaterialesSeleccionados] = useState([]);
 
   const firmaTecnicoRef = useRef(null);
   const firmaUsuarioRef = useRef(null);
@@ -68,12 +74,26 @@ export default function MantenimientoEdit() {
       setChecklistItems(d.results ?? d);
     });
 
+    Promise.all([
+      mantenimientosService.actividadesCatalogo(),
+      mantenimientosService.materialesCatalogo(),
+    ]).then(([acts, mats]) => {
+      setActividadesCatalogo(acts.results ?? acts);
+      setMaterialesCatalogo(mats.results ?? mats);
+    }).finally(() => setLoadingCatalogos(false));
+
     mantenimientosService
       .get(id)
       .then((data) => {
         const v = {};
         EDITABLE.forEach((f) => { v[f] = data[f] ?? ''; });
         setForm(v);
+        if (data.actividades_realizadas) {
+          setActividadesSeleccionadas(data.actividades_realizadas.split(', ').filter(Boolean));
+        }
+        if (data.materiales_utilizados) {
+          setMaterialesSeleccionados(data.materiales_utilizados.split(', ').filter(Boolean));
+        }
 
         if (data.checklist_respuestas && data.checklist_respuestas.length > 0) {
           const respuestas = {};
@@ -176,7 +196,11 @@ export default function MantenimientoEdit() {
     setSaving(true);
     setApiError('');
     try {
-      const payload = { ...form };
+      const payload = {
+        ...form,
+        actividades_realizadas: actividadesSeleccionadas.join(', '),
+        materiales_utilizados: materialesSeleccionados.join(', '),
+      };
       if (!payload.hora_fin) delete payload.hora_fin;
       if (!payload.hora_inicio) delete payload.hora_inicio;
       if (!payload.fecha_sugerida_proximo_mantenimiento) delete payload.fecha_sugerida_proximo_mantenimiento;
@@ -234,7 +258,7 @@ export default function MantenimientoEdit() {
     if (!form.hora_fin) { errores.push('Falta la hora de fin.'); fe.hora_fin = 'Obligatorio'; }
     if (!(form.departamento_area || '').trim()) { errores.push('Falta el departamento / área.'); fe.departamento_area = 'Obligatorio'; }
     if (!(form.responsable_area || '').trim()) { errores.push('Falta el responsable del área.'); fe.responsable_area = 'Obligatorio'; }
-    if (!(form.actividades_realizadas || '').trim()) { errores.push('Falta describir las actividades realizadas.'); fe.actividades_realizadas = 'Obligatorio'; }
+    if (actividadesSeleccionadas.length === 0) { errores.push('Falta seleccionar al menos una actividad realizada.'); fe.actividades_realizadas = 'Obligatorio'; }
     if (!form.estado_equipo_post) { errores.push('Falta el estado del equipo post-mantenimiento.'); fe.estado_equipo_post = 'Obligatorio'; }
     if (!form.fecha_sugerida_proximo_mantenimiento) { errores.push('Falta la fecha sugerida del próximo mantenimiento.'); fe.fecha_sugerida_proximo_mantenimiento = 'Obligatorio'; }
     setFieldErrors(fe);
@@ -338,10 +362,24 @@ export default function MantenimientoEdit() {
       <SectionCard title="Actividades y materiales">
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Actividades realizadas" {...f('actividades_realizadas')} multiline rows={4} />
+            <CatalogoCheckboxList
+              label="ACTIVIDADES REALIZADAS"
+              items={actividadesCatalogo}
+              loading={loadingCatalogos}
+              selected={actividadesSeleccionadas}
+              onChange={(v) => { setActividadesSeleccionadas(v); setFieldErrors((p) => ({ ...p, actividades_realizadas: false })); }}
+              error={!!fieldErrors.actividades_realizadas}
+              helperText={fieldErrors.actividades_realizadas || ''}
+            />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Materiales utilizados" {...f('materiales_utilizados')} multiline rows={4} />
+            <CatalogoCheckboxList
+              label="MATERIALES UTILIZADOS"
+              items={materialesCatalogo}
+              loading={loadingCatalogos}
+              selected={materialesSeleccionados}
+              onChange={setMaterialesSeleccionados}
+            />
           </Grid>
         </Grid>
       </SectionCard>
@@ -428,6 +466,7 @@ export default function MantenimientoEdit() {
               tipoFirma="TECNICO"
               defaultNombre={firmaDefaults.tecnico.nombre || tecnicos.find((t) => t.id === form.tecnico)?.full_name || ''}
               defaultCargo={firmaDefaults.tecnico.cargo}
+              firmaGuardada={firmasGuardadas.TECNICO}
             />
             {firmasGuardadas.TECNICO && firmaImagenes.TECNICO && (
               <Box sx={{ mt: 1.5, p: 1.5, border: '1px solid #e5e7eb', borderRadius: 1, bgcolor: 'grey.50' }}>
@@ -446,6 +485,7 @@ export default function MantenimientoEdit() {
               tipoFirma="USUARIO"
               defaultNombre={firmaDefaults.usuario.nombre}
               defaultCargo={firmaDefaults.usuario.cargo}
+              firmaGuardada={firmasGuardadas.USUARIO}
             />
             {firmasGuardadas.USUARIO && firmaImagenes.USUARIO && (
               <Box sx={{ mt: 1.5, p: 1.5, border: '1px solid #e5e7eb', borderRadius: 1, bgcolor: 'grey.50' }}>

@@ -3,8 +3,9 @@ from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
-from .models import ChecklistItem, EvidenciaMantenimiento, Mantenimiento
+from .models import ActividadCatalogo, ChecklistItem, EvidenciaMantenimiento, Mantenimiento, MaterialCatalogo
 from .serializers import (
+    ActividadCatalogoSerializer,
     ChecklistItemSerializer,
     ChecklistRespuestaBulkSerializer,
     ChecklistRespuestaSerializer,
@@ -12,8 +13,19 @@ from .serializers import (
     FirmaSerializer,
     MantenimientoDetailSerializer,
     MantenimientoListSerializer,
+    MaterialCatalogoSerializer,
 )
 from .services import generar_pdf_mantenimiento
+
+
+class ActividadCatalogoViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ActividadCatalogo.objects.filter(activo=True)
+    serializer_class = ActividadCatalogoSerializer
+
+
+class MaterialCatalogoViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = MaterialCatalogo.objects.filter(activo=True)
+    serializer_class = MaterialCatalogoSerializer
 
 
 class ChecklistItemViewSet(viewsets.ReadOnlyModelViewSet):

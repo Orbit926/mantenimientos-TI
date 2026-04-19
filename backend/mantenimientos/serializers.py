@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import ChecklistItem, ChecklistRespuesta, EvidenciaMantenimiento, Firma, Mantenimiento
+from .models import ActividadCatalogo, ChecklistItem, ChecklistRespuesta, EvidenciaMantenimiento, Firma, Mantenimiento, MaterialCatalogo
 
 
 class EvidenciaSerializer(serializers.ModelSerializer):
@@ -16,6 +16,18 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         if obj.imagen and request:
             return request.build_absolute_uri(obj.imagen.url)
         return obj.imagen.url if obj.imagen else None
+
+
+class ActividadCatalogoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ActividadCatalogo
+        fields = ['id', 'nombre', 'orden']
+
+
+class MaterialCatalogoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MaterialCatalogo
+        fields = ['id', 'nombre', 'orden']
 
 
 class ChecklistItemSerializer(serializers.ModelSerializer):

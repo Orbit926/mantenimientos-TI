@@ -19,6 +19,34 @@ class ChecklistItem(models.Model):
         return self.nombre
 
 
+class ActividadCatalogo(models.Model):
+    nombre = models.CharField(max_length=200)
+    activo = models.BooleanField(default=True)
+    orden = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['orden', 'nombre']
+        verbose_name = 'Actividad del catálogo'
+        verbose_name_plural = 'Actividades del catálogo'
+
+    def __str__(self):
+        return self.nombre
+
+
+class MaterialCatalogo(models.Model):
+    nombre = models.CharField(max_length=200)
+    activo = models.BooleanField(default=True)
+    orden = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['orden', 'nombre']
+        verbose_name = 'Material del catálogo'
+        verbose_name_plural = 'Materiales del catálogo'
+
+    def __str__(self):
+        return self.nombre
+
+
 class Mantenimiento(models.Model):
     ESTADO_EQUIPO_CHOICES = [
         ('OPERATIVO', 'Operativo'),

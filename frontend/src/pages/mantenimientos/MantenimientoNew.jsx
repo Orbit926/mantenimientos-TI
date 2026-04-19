@@ -21,6 +21,7 @@ import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
 import ChecklistGroup from '../../components/mantenimientos/ChecklistGroup';
 import SignaturePad from '../../components/mantenimientos/SignaturePad';
+import CatalogoCheckboxList from '../../components/mantenimientos/CatalogoCheckboxList';
 import EvidenciaUploader from '../../components/mantenimientos/EvidenciaUploader';
 import FileActionButtons from '../../components/common/FileActionButtons';
 import { mantenimientosService } from '../../services/mantenimientos';
@@ -60,6 +61,11 @@ export default function MantenimientoNew() {
   const { user } = useAuth();
   const [checklistItems, setChecklistItems] = useState([]);
   const [checklistValues, setChecklistValues] = useState({});
+  const [actividadesCatalogo, setActividadesCatalogo] = useState([]);
+  const [materialesCatalogo, setMaterialesCatalogo] = useState([]);
+  const [loadingCatalogos, setLoadingCatalogos] = useState(true);
+  const [actividadesSeleccionadas, setActividadesSeleccionadas] = useState([]);
+  const [materialesSeleccionados, setMaterialesSeleccionados] = useState([]);
   const [evidencias, setEvidencias] = useState([]);
   const [mantenimientoId, setMantenimientoId] = useState(null);
   const [pdfUrl, setPdfUrl] = useState('');
@@ -91,6 +97,13 @@ export default function MantenimientoNew() {
       items.forEach((item) => { initial[item.id] = { realizado: false, observacion: '' }; });
       setChecklistValues(initial);
     });
+    Promise.all([
+      mantenimientosService.actividadesCatalogo(),
+      mantenimientosService.materialesCatalogo(),
+    ]).then(([acts, mats]) => {
+      setActividadesCatalogo(acts.results ?? acts);
+      setMaterialesCatalogo(mats.results ?? mats);
+    }).finally(() => setLoadingCatalogos(false));
   }, []);
 
   useEffect(() => {
@@ -167,7 +180,12 @@ export default function MantenimientoNew() {
     setApiError('');
     setFieldErrors({});
     try {
-      const payload = { ...form, equipo: parseInt(form.equipo) };
+      const payload = {
+        ...form,
+        equipo: parseInt(form.equipo),
+        actividades_realizadas: actividadesSeleccionadas.join(', '),
+        materiales_utilizados: materialesSeleccionados.join(', '),
+      };
       if (!payload.hora_inicio) delete payload.hora_inicio;
       if (!payload.hora_fin) delete payload.hora_fin;
       if (!payload.fecha_sugerida_proximo_mantenimiento) delete payload.fecha_sugerida_proximo_mantenimiento;
@@ -234,7 +252,7 @@ export default function MantenimientoNew() {
     if (!form.hora_fin) { errores.push('Falta la hora de fin.'); fe.hora_fin = 'Obligatorio'; }
     if (!(form.departamento_area || '').trim()) { errores.push('Falta el departamento / área.'); fe.departamento_area = 'Obligatorio'; }
     if (!(form.responsable_area || '').trim()) { errores.push('Falta el responsable del área.'); fe.responsable_area = 'Obligatorio'; }
-    if (!(form.actividades_realizadas || '').trim()) { errores.push('Falta describir las actividades realizadas.'); fe.actividades_realizadas = 'Obligatorio'; }
+    if (actividadesSeleccionadas.length === 0) { errores.push('Falta seleccionar al menos una actividad realizada.'); fe.actividades_realizadas = 'Obligatorio'; }
     if (!form.estado_equipo_post) { errores.push('Falta el estado del equipo post-mantenimiento.'); fe.estado_equipo_post = 'Obligatorio'; }
     if (!form.fecha_sugerida_proximo_mantenimiento) { errores.push('Falta la fecha sugerida del próximo mantenimiento.'); fe.fecha_sugerida_proximo_mantenimiento = 'Obligatorio'; }
     setFieldErrors(fe);
@@ -367,10 +385,24 @@ export default function MantenimientoNew() {
       <SectionCard title="Actividades y materiales">
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Actividades realizadas" {...f('actividades_realizadas')} multiline rows={4} />
+            <CatalogoCheckboxList
+              label="ACTIVIDADES REALIZADAS"
+              items={actividadesCatalogo}
+              loading={loadingCatalogos}
+              selected={actividadesSeleccionadas}
+              onChange={(v) => { setActividadesSeleccionadas(v); setFieldErrors((p) => ({ ...p, actividades_realizadas: false })); }}
+              error={!!fieldErrors.actividades_realizadas}
+              helperText={fieldErrors.actividades_realizadas || ''}
+            />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Materiales utilizados" {...f('materiales_utilizados')} multiline rows={4} />
+            <CatalogoCheckboxList
+              label="MATERIALES UTILIZADOS"
+              items={materialesCatalogo}
+              loading={loadingCatalogos}
+              selected={materialesSeleccionados}
+              onChange={setMaterialesSeleccionados}
+            />
           </Grid>
         </Grid>
       </SectionCard>

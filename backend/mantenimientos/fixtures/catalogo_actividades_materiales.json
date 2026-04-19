@@ -1,0 +1,23 @@
+[
+  {"model": "mantenimientos.actividadcatalogo", "pk": 1, "fields": {"nombre": "Limpieza de polvo (interior)", "activo": true, "orden": 1}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 2, "fields": {"nombre": "Limpieza de teclado y periféricos", "activo": true, "orden": 2}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 3, "fields": {"nombre": "Limpieza de pantalla / monitor", "activo": true, "orden": 3}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 4, "fields": {"nombre": "Cambio de pasta térmica", "activo": true, "orden": 4}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 5, "fields": {"nombre": "Revisión y ajuste de conexiones internas", "activo": true, "orden": 5}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 6, "fields": {"nombre": "Revisión del sistema de enfriamiento (ventiladores)", "activo": true, "orden": 6}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 7, "fields": {"nombre": "Actualización de drivers y sistema operativo", "activo": true, "orden": 7}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 8, "fields": {"nombre": "Escaneo y eliminación de malware", "activo": true, "orden": 8}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 9, "fields": {"nombre": "Verificación de disco duro / SSD", "activo": true, "orden": 9}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 10, "fields": {"nombre": "Revisión y limpieza de puertos USB / red", "activo": true, "orden": 10}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 11, "fields": {"nombre": "Revisión de fuente de poder", "activo": true, "orden": 11}},
+  {"model": "mantenimientos.actividadcatalogo", "pk": 12, "fields": {"nombre": "Backup de información del usuario", "activo": true, "orden": 12}},
+
+  {"model": "mantenimientos.materialcatalogo", "pk": 1, "fields": {"nombre": "Aire en lata (compressed air)", "activo": true, "orden": 1}},
+  {"model": "mantenimientos.materialcatalogo", "pk": 2, "fields": {"nombre": "Pasta térmica", "activo": true, "orden": 2}},
+  {"model": "mantenimientos.materialcatalogo", "pk": 3, "fields": {"nombre": "Alcohol isopropílico", "activo": true, "orden": 3}},
+  {"model": "mantenimientos.materialcatalogo", "pk": 4, "fields": {"nombre": "Paños de microfibra", "activo": true, "orden": 4}},
+  {"model": "mantenimientos.materialcatalogo", "pk": 5, "fields": {"nombre": "Brocha antiestática", "activo": true, "orden": 5}},
+  {"model": "mantenimientos.materialcatalogo", "pk": 6, "fields": {"nombre": "Pulsera antiestática", "activo": true, "orden": 6}},
+  {"model": "mantenimientos.materialcatalogo", "pk": 7, "fields": {"nombre": "Destornilladores de precisión", "activo": true, "orden": 7}},
+  {"model": "mantenimientos.materialcatalogo", "pk": 8, "fields": {"nombre": "Limpiador de contactos eléctricos", "activo": true, "orden": 8}}
+]

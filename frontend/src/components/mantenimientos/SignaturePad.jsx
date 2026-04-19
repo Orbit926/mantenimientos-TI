@@ -4,7 +4,7 @@ import { Box, Typography, Button, TextField, Divider, Stack } from '@mui/materia
 import ClearIcon from '@mui/icons-material/Clear';
 import { dataUrlToFile } from '../../utils/formatters';
 
-const SignaturePad = forwardRef(function SignaturePad({ label, tipoFirma, defaultNombre = '', defaultCargo = '' }, ref) {
+const SignaturePad = forwardRef(function SignaturePad({ label, tipoFirma, defaultNombre = '', defaultCargo = '', firmaGuardada = false }, ref) {
   const sigRef = useRef(null);
   const [nombre, setNombre] = useState(defaultNombre);
   const [cargo, setCargo] = useState(defaultCargo);
@@ -40,7 +40,7 @@ const SignaturePad = forwardRef(function SignaturePad({ label, tipoFirma, defaul
 
   const nombreError = touched.nombre && !nombre.trim();
   const cargoError = touched.cargo && !cargo.trim();
-  const firmaError = touched.firma && (!sigRef.current || sigRef.current.isEmpty());
+  const firmaError = touched.firma && (!sigRef.current || sigRef.current.isEmpty()) && !firmaGuardada;
 
   return (
     <Box>

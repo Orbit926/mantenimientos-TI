@@ -1,12 +1,26 @@
 from django.contrib import admin
 
-from .models import ChecklistItem, ChecklistRespuesta, EvidenciaMantenimiento, Firma, Mantenimiento
+from .models import ActividadCatalogo, ChecklistItem, ChecklistRespuesta, EvidenciaMantenimiento, Firma, Mantenimiento, MaterialCatalogo
 
 
 @admin.register(ChecklistItem)
 class ChecklistItemAdmin(admin.ModelAdmin):
     list_display = ['nombre', 'categoria', 'orden', 'activo']
     list_filter = ['activo', 'categoria']
+    ordering = ['orden']
+
+
+@admin.register(ActividadCatalogo)
+class ActividadCatalogoAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'orden', 'activo']
+    list_filter = ['activo']
+    ordering = ['orden']
+
+
+@admin.register(MaterialCatalogo)
+class MaterialCatalogoAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'orden', 'activo']
+    list_filter = ['activo']
     ordering = ['orden']
 
 
