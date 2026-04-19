@@ -98,6 +98,10 @@ class MantenimientoDetailSerializer(serializers.ModelSerializer):
     checklist_respuestas = ChecklistRespuestaSerializer(many=True, read_only=True)
     tecnico_nombre = serializers.SerializerMethodField()
     tecnico_username = serializers.SerializerMethodField()
+    equipo_codigo = serializers.CharField(source='equipo.codigo_interno', read_only=True)
+    equipo_marca = serializers.CharField(source='equipo.marca', read_only=True)
+    equipo_modelo = serializers.CharField(source='equipo.modelo', read_only=True)
+    equipo_tipo = serializers.CharField(source='equipo.tipo_equipo', read_only=True)
 
     class Meta:
         model = Mantenimiento

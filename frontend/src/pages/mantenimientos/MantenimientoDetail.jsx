@@ -20,7 +20,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
 import StatusChip from '../../components/common/StatusChip';
@@ -137,8 +137,21 @@ export default function MantenimientoDetail() {
         {/* Equipo */}
         <Grid size={{ xs: 12, md: 6 }}>
           <SectionCard title="Equipo">
-            <InfoRow label="Código interno" value={mant.equipo_codigo} />
-            <InfoRow label="Descripción" value={mant.equipo_descripcion} />
+            <Box sx={{ display: 'flex', py: 0.75 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 220, fontWeight: 500 }}>
+                Código interno
+              </Typography>
+              <Typography
+                variant="body2"
+                component={RouterLink}
+                to={`/equipos/${mant.equipo}`}
+                sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+              >
+                {mant.equipo_codigo || '—'}
+              </Typography>
+            </Box>
+            <InfoRow label="Marca / Modelo" value={mant.equipo_marca && mant.equipo_modelo ? `${mant.equipo_marca} ${mant.equipo_modelo}` : null} />
+            <InfoRow label="Tipo" value={mant.equipo_tipo} />
           </SectionCard>
         </Grid>
 

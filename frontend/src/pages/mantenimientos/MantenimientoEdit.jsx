@@ -53,6 +53,7 @@ export default function MantenimientoEdit() {
   const [pdfUrl, setPdfUrl] = useState('');
   const [firmaDefaults, setFirmaDefaults] = useState({ tecnico: { nombre: '', cargo: '' }, usuario: { nombre: '', cargo: '' } });
   const [firmasGuardadas, setFirmasGuardadas] = useState({ TECNICO: false, USUARIO: false });
+  const [firmaImagenes, setFirmaImagenes] = useState({ TECNICO: '', USUARIO: '' });
 
   const firmaTecnicoRef = useRef(null);
   const firmaUsuarioRef = useRef(null);
@@ -104,6 +105,10 @@ export default function MantenimientoEdit() {
         usuario: { nombre: firmaUsr?.nombre_firmante || '', cargo: firmaUsr?.cargo_firmante || '' },
       });
       setFirmasGuardadas({ TECNICO: !!firmaTec, USUARIO: !!firmaUsr });
+      setFirmaImagenes({
+        TECNICO: firmaTec?.firma_imagen_url || '',
+        USUARIO: firmaUsr?.firma_imagen_url || '',
+      });
     }).catch(() => {});
   }, [id]);
 
@@ -200,8 +205,11 @@ export default function MantenimientoEdit() {
             fd.append('cargo_firmante', data.cargo_firmante);
             fd.append('firma_imagen', data.file);
             try {
-              await mantenimientosService.saveFirma(id, fd);
+              const saved = await mantenimientosService.saveFirma(id, fd);
               setFirmasGuardadas((p) => ({ ...p, [tipo]: true }));
+              if (saved?.firma_imagen_url) {
+                setFirmaImagenes((p) => ({ ...p, [tipo]: saved.firma_imagen_url }));
+              }
             } catch {
             }
           }
@@ -421,6 +429,14 @@ export default function MantenimientoEdit() {
               defaultNombre={firmaDefaults.tecnico.nombre || tecnicos.find((t) => t.id === form.tecnico)?.full_name || ''}
               defaultCargo={firmaDefaults.tecnico.cargo}
             />
+            {firmasGuardadas.TECNICO && firmaImagenes.TECNICO && (
+              <Box sx={{ mt: 1.5, p: 1.5, border: '1px solid #e5e7eb', borderRadius: 1, bgcolor: 'grey.50' }}>
+                <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                  Firma guardada actualmente (se reemplazará si dibujas una nueva)
+                </Typography>
+                <Box component="img" src={firmaImagenes.TECNICO} alt="Firma guardada" sx={{ maxHeight: 70, maxWidth: '100%' }} />
+              </Box>
+            )}
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <SignaturePad
@@ -431,6 +447,14 @@ export default function MantenimientoEdit() {
               defaultNombre={firmaDefaults.usuario.nombre}
               defaultCargo={firmaDefaults.usuario.cargo}
             />
+            {firmasGuardadas.USUARIO && firmaImagenes.USUARIO && (
+              <Box sx={{ mt: 1.5, p: 1.5, border: '1px solid #e5e7eb', borderRadius: 1, bgcolor: 'grey.50' }}>
+                <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>
+                  Firma guardada actualmente (se reemplazará si dibujas una nueva)
+                </Typography>
+                <Box component="img" src={firmaImagenes.USUARIO} alt="Firma guardada" sx={{ maxHeight: 70, maxWidth: '100%' }} />
+              </Box>
+            )}
           </Grid>
         </Grid>
       </SectionCard>
