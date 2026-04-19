@@ -50,7 +50,7 @@ export default function MantenimientoEdit() {
   const [apiError, setApiError] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [pdfUrl, setPdfUrl] = useState('');
-  const [firmaNombres, setFirmaNombres] = useState({ tecnico: '', usuario: '' });
+  const [firmaDefaults, setFirmaDefaults] = useState({ tecnico: { nombre: '', cargo: '' }, usuario: { nombre: '', cargo: '' } });
 
   const firmaTecnicoRef = useRef(null);
   const firmaUsuarioRef = useRef(null);
@@ -97,9 +97,9 @@ export default function MantenimientoEdit() {
     mantenimientosService.getFirmas(id).then((firmas) => {
       const firmaTec = firmas.find?.((f) => f.tipo_firma === 'TECNICO');
       const firmaUsr = firmas.find?.((f) => f.tipo_firma === 'USUARIO');
-      setFirmaNombres({
-        tecnico: firmaTec?.nombre_firmante || '',
-        usuario: firmaUsr?.nombre_firmante || '',
+      setFirmaDefaults({
+        tecnico: { nombre: firmaTec?.nombre_firmante || '', cargo: firmaTec?.cargo_firmante || '' },
+        usuario: { nombre: firmaUsr?.nombre_firmante || '', cargo: firmaUsr?.cargo_firmante || '' },
       });
     }).catch(() => {});
   }, [id]);
@@ -406,18 +406,22 @@ export default function MantenimientoEdit() {
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 6 }}>
             <SignaturePad
+              key={`tec-${firmaDefaults.tecnico.nombre}`}
               ref={firmaTecnicoRef}
               label="Firma del técnico de TI"
               tipoFirma="TECNICO"
-              defaultNombre={firmaNombres.tecnico || tecnicos.find((t) => t.id === form.tecnico)?.full_name || ''}
+              defaultNombre={firmaDefaults.tecnico.nombre || tecnicos.find((t) => t.id === form.tecnico)?.full_name || ''}
+              defaultCargo={firmaDefaults.tecnico.cargo}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <SignaturePad
+              key={`usr-${firmaDefaults.usuario.nombre}`}
               ref={firmaUsuarioRef}
               label="Firma del usuario / colaborador"
               tipoFirma="USUARIO"
-              defaultNombre={firmaNombres.usuario}
+              defaultNombre={firmaDefaults.usuario.nombre}
+              defaultCargo={firmaDefaults.usuario.cargo}
             />
           </Grid>
         </Grid>

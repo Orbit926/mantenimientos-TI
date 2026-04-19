@@ -173,14 +173,17 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
                 FirmaSerializer(firmas, many=True, context={'request': request}).data
             )
 
+        tipo = request.data.get('tipo_firma')
+        existing = mantenimiento.firmas.filter(tipo_firma=tipo).first()
+        if existing:
+            serializer = FirmaSerializer(
+                existing, data=request.data, partial=True, context={'request': request}
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
         serializer = FirmaSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        tipo = serializer.validated_data['tipo_firma']
-        if mantenimiento.firmas.filter(tipo_firma=tipo).exists():
-            return Response(
-                {'detail': f'Ya existe una firma de tipo {tipo} para este mantenimiento.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         serializer.save(mantenimiento=mantenimiento)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
