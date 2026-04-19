@@ -50,7 +50,9 @@ client.interceptors.response.use(
       err.response?.data?.non_field_errors?.[0] ||
       Object.values(err.response?.data || {})[0]?.[0] ||
       'Error inesperado. Intenta de nuevo.';
-    return Promise.reject(new Error(message));
+    const error = new Error(message);
+    error.responseData = err.response?.data;
+    return Promise.reject(error);
   }
 );
 

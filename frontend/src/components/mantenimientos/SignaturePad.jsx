@@ -8,6 +8,7 @@ const SignaturePad = forwardRef(function SignaturePad({ label, tipoFirma, defaul
   const sigRef = useRef(null);
   const [nombre, setNombre] = useState(defaultNombre);
   const [cargo, setCargo] = useState('');
+  const [touched, setTouched] = useState({ nombre: false, cargo: false, firma: false });
 
   useImperativeHandle(ref, () => ({
     getData() {
@@ -26,7 +27,20 @@ const SignaturePad = forwardRef(function SignaturePad({ label, tipoFirma, defaul
     isEmpty() {
       return !sigRef.current || sigRef.current.isEmpty();
     },
+    isNombreVacio() {
+      return !nombre.trim();
+    },
+    isCargoVacio() {
+      return !cargo.trim();
+    },
+    markAllTouched() {
+      setTouched({ nombre: true, cargo: true, firma: true });
+    },
   }));
+
+  const nombreError = touched.nombre && !nombre.trim();
+  const cargoError = touched.cargo && !cargo.trim();
+  const firmaError = touched.firma && (!sigRef.current || sigRef.current.isEmpty());
 
   return (
     <Box>
@@ -37,22 +51,26 @@ const SignaturePad = forwardRef(function SignaturePad({ label, tipoFirma, defaul
         <TextField
           label="Nombre del firmante *"
           value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
+          onChange={(e) => { setNombre(e.target.value); setTouched((p) => ({ ...p, nombre: true })); }}
           size="small"
           fullWidth
+          error={nombreError}
+          helperText={nombreError ? 'El nombre es obligatorio' : ''}
         />
         <TextField
-          label="Cargo / Puesto"
+          label="Cargo / Puesto *"
           value={cargo}
-          onChange={(e) => setCargo(e.target.value)}
+          onChange={(e) => { setCargo(e.target.value); setTouched((p) => ({ ...p, cargo: true })); }}
           size="small"
           fullWidth
+          error={cargoError}
+          helperText={cargoError ? 'El puesto es obligatorio' : ''}
         />
         <Box>
           <Box
             sx={{
               border: '1px solid',
-              borderColor: 'divider',
+              borderColor: firmaError ? 'error.main' : 'divider',
               borderRadius: 1,
               overflow: 'hidden',
               bgcolor: '#fafafa',
@@ -65,6 +83,11 @@ const SignaturePad = forwardRef(function SignaturePad({ label, tipoFirma, defaul
               canvasProps={{ width: 420, height: 140, style: { display: 'block' } }}
             />
           </Box>
+          {firmaError && (
+            <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+              La firma es obligatoria
+            </Typography>
+          )}
           <Button
             size="small"
             startIcon={<ClearIcon />}

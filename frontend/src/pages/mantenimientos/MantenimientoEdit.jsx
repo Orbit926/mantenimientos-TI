@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Grid,
@@ -10,13 +10,18 @@ import {
   FormControlLabel,
   Switch,
   Typography,
+  Snackbar,
+  Stack,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
 import ChecklistGroup from '../../components/mantenimientos/ChecklistGroup';
+import SignaturePad from '../../components/mantenimientos/SignaturePad';
 import EvidenciaUploader from '../../components/mantenimientos/EvidenciaUploader';
+import FileActionButtons from '../../components/common/FileActionButtons';
 import { mantenimientosService } from '../../services/mantenimientos';
 import { tecnicosService } from '../../services/tecnicos';
 import { ESTADO_EQUIPO_CHOICES } from '../../utils/constants';
@@ -40,19 +45,26 @@ export default function MantenimientoEdit() {
   const [evidencias, setEvidencias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [pdfUrl, setPdfUrl] = useState('');
+  const [firmaNombres, setFirmaNombres] = useState({ tecnico: '', usuario: '' });
+
+  const firmaTecnicoRef = useRef(null);
+  const firmaUsuarioRef = useRef(null);
+
+  const showSnack = (message, severity = 'success') =>
+    setSnackbar({ open: true, message, severity });
 
   useEffect(() => {
-    // Cargar técnicos activos para el dropdown
     tecnicosService.list({ activo: 'true' }).then((d) => setTecnicos(d.results ?? d));
 
-    // Cargar items de checklist
     mantenimientosService.checklistItems().then((d) => {
-      const items = d.results ?? d;
-      setChecklistItems(items);
+      setChecklistItems(d.results ?? d);
     });
 
-    // Cargar mantenimiento y respuestas de checklist
     mantenimientosService
       .get(id)
       .then((data) => {
@@ -60,7 +72,6 @@ export default function MantenimientoEdit() {
         EDITABLE.forEach((f) => { v[f] = data[f] ?? ''; });
         setForm(v);
 
-        // Cargar respuestas existentes del checklist
         if (data.checklist_respuestas && data.checklist_respuestas.length > 0) {
           const respuestas = {};
           data.checklist_respuestas.forEach((resp) => {
@@ -72,17 +83,61 @@ export default function MantenimientoEdit() {
           setChecklistValues(respuestas);
         }
 
-        // Cargar evidencias existentes
         if (data.evidencias && Array.isArray(data.evidencias)) {
           setEvidencias(data.evidencias);
+        }
+
+        if (data.documento_pdf_url) {
+          setPdfUrl(data.documento_pdf_url);
         }
       })
       .catch((e) => setApiError(e.message))
       .finally(() => setLoading(false));
+
+    mantenimientosService.getFirmas(id).then((firmas) => {
+      const firmaTec = firmas.find?.((f) => f.tipo_firma === 'TECNICO');
+      const firmaUsr = firmas.find?.((f) => f.tipo_firma === 'USUARIO');
+      setFirmaNombres({
+        tecnico: firmaTec?.nombre_firmante || '',
+        usuario: firmaUsr?.nombre_firmante || '',
+      });
+    }).catch(() => {});
   }, [id]);
 
-  const handleField = (name, value) =>
+  const handleField = (name, value) => {
     setForm((p) => ({ ...p, [name]: value }));
+    setFieldErrors((p) => ({ ...p, [name]: false }));
+  };
+
+  const FIELD_LABELS = {
+    tecnico: 'Técnico responsable',
+    departamento_area: 'Departamento / Área',
+    responsable_area: 'Responsable del área',
+    fecha_ejecucion: 'Fecha de ejecución',
+    hora_inicio: 'Hora inicio',
+    hora_fin: 'Hora fin',
+    actividades_realizadas: 'Actividades realizadas',
+    estado_equipo_post: 'Estado del equipo',
+    fecha_sugerida_proximo_mantenimiento: 'Fecha próximo mantenimiento',
+  };
+
+  const handleApiFieldErrors = (e) => {
+    const data = e.responseData;
+    if (data && typeof data === 'object' && !data.detail) {
+      const fe = {};
+      const msgs = [];
+      Object.entries(data).forEach(([field, errs]) => {
+        const msg = Array.isArray(errs) ? errs[0] : errs;
+        fe[field] = msg;
+        const label = FIELD_LABELS[field] || field;
+        msgs.push(`${label}: ${msg}`);
+      });
+      setFieldErrors(fe);
+      setApiError(msgs.join(' · '));
+      return true;
+    }
+    return false;
+  };
 
   const handleUploadEvidencia = async (file, tipo, descripcion) => {
     const fd = new FormData();
@@ -91,11 +146,13 @@ export default function MantenimientoEdit() {
     if (descripcion) fd.append('descripcion', descripcion);
     const nueva = await mantenimientosService.uploadEvidencia(id, fd);
     setEvidencias((prev) => [...prev, nueva]);
+    showSnack('Evidencia subida correctamente');
   };
 
   const handleDeleteEvidencia = async (evidenciaId) => {
     await mantenimientosService.deleteEvidencia(id, evidenciaId);
     setEvidencias((prev) => prev.filter((e) => e.id !== evidenciaId));
+    showSnack('Evidencia eliminada');
   };
 
   const f = (name) => ({
@@ -115,7 +172,6 @@ export default function MantenimientoEdit() {
       if (!payload.fecha_sugerida_proximo_mantenimiento) delete payload.fecha_sugerida_proximo_mantenimiento;
       await mantenimientosService.update(id, payload);
 
-      // Guardar respuestas del checklist
       const respuestas = Object.entries(checklistValues).map(([itemId, val]) => ({
         checklist_item: parseInt(itemId),
         realizado: val.realizado,
@@ -125,11 +181,97 @@ export default function MantenimientoEdit() {
         await mantenimientosService.saveChecklist(id, respuestas);
       }
 
+      const firmas = [
+        { ref: firmaTecnicoRef, tipo: 'TECNICO' },
+        { ref: firmaUsuarioRef, tipo: 'USUARIO' },
+      ];
+      for (const { ref, tipo } of firmas) {
+        if (!ref.current?.isEmpty()) {
+          const data = ref.current.getData();
+          if (data) {
+            const fd = new FormData();
+            fd.append('tipo_firma', data.tipo_firma);
+            fd.append('nombre_firmante', data.nombre_firmante);
+            fd.append('cargo_firmante', data.cargo_firmante);
+            fd.append('firma_imagen', data.file);
+            try {
+              await mantenimientosService.saveFirma(id, fd);
+            } catch {
+            }
+          }
+        }
+      }
+
+      showSnack('Cambios guardados correctamente.');
+    } catch (e) {
+      if (!handleApiFieldErrors(e)) setApiError(e.message);
+      throw e;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const validarParaCompletar = () => {
+    const errores = [];
+    const fe = {};
+    if (!form.tecnico) { errores.push('Falta el técnico responsable.'); fe.tecnico = 'Obligatorio'; }
+    if (!form.fecha_ejecucion) { errores.push('Falta la fecha de ejecución.'); fe.fecha_ejecucion = 'Obligatorio'; }
+    if (!form.hora_inicio) { errores.push('Falta la hora de inicio.'); fe.hora_inicio = 'Obligatorio'; }
+    if (!form.hora_fin) { errores.push('Falta la hora de fin.'); fe.hora_fin = 'Obligatorio'; }
+    if (!(form.departamento_area || '').trim()) { errores.push('Falta el departamento / área.'); fe.departamento_area = 'Obligatorio'; }
+    if (!(form.responsable_area || '').trim()) { errores.push('Falta el responsable del área.'); fe.responsable_area = 'Obligatorio'; }
+    if (!(form.actividades_realizadas || '').trim()) { errores.push('Falta describir las actividades realizadas.'); fe.actividades_realizadas = 'Obligatorio'; }
+    if (!form.estado_equipo_post) { errores.push('Falta el estado del equipo post-mantenimiento.'); fe.estado_equipo_post = 'Obligatorio'; }
+    if (!form.fecha_sugerida_proximo_mantenimiento) { errores.push('Falta la fecha sugerida del próximo mantenimiento.'); fe.fecha_sugerida_proximo_mantenimiento = 'Obligatorio'; }
+    setFieldErrors(fe);
+    const firmaT = firmaTecnicoRef.current;
+    const firmaU = firmaUsuarioRef.current;
+    firmaT?.markAllTouched();
+    firmaU?.markAllTouched();
+    if (!firmaT || firmaT.isEmpty()) { errores.push('Falta dibujar la firma del técnico.'); }
+    else if (firmaT.isNombreVacio()) { errores.push('Falta el nombre del firmante (técnico).'); }
+    else if (firmaT.isCargoVacio()) { errores.push('Falta el puesto del firmante (técnico).'); }
+    if (!firmaU || firmaU.isEmpty()) { errores.push('Falta dibujar la firma del usuario.'); }
+    else if (firmaU.isNombreVacio()) { errores.push('Falta el nombre del firmante (usuario).'); }
+    else if (firmaU.isCargoVacio()) { errores.push('Falta el puesto del firmante (usuario).'); }
+    return errores;
+  };
+
+  const handleCompletar = async () => {
+    const errores = validarParaCompletar();
+    if (errores.length > 0) {
+      setApiError(errores.join(' · '));
+      return;
+    }
+    setCompleting(true);
+    try {
+      await handleSubmit();
+      await mantenimientosService.cerrar(id);
+      showSnack('Mantenimiento completado correctamente.');
       navigate(`/mantenimientos/${id}`);
+    } catch (e) {
+      const data = e.responseData;
+      if (data?.errores) {
+        setApiError(data.errores.join(' · '));
+      } else if (!handleApiFieldErrors(e)) {
+        setApiError(e.message);
+      }
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const handleGenerarPDF = async () => {
+    setGenerating(true);
+    try {
+      const mant = await mantenimientosService.generarPDF(id);
+      const url = mant.documento_pdf_url || '';
+      setPdfUrl(url);
+      showSnack('PDF generado correctamente.');
     } catch (e) {
       setApiError(e.message);
     } finally {
-      setSaving(false);
+      setGenerating(false);
     }
   };
 
@@ -163,13 +305,13 @@ export default function MantenimientoEdit() {
             <TextField label="Responsable del área" {...f('responsable_area')} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField label="Fecha de ejecución" type="date" {...f('fecha_ejecucion')} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField label="Fecha de ejecución" type="date" {...f('fecha_ejecucion')} slotProps={{ inputLabel: { shrink: !!form.fecha_ejecucion } }} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField label="Hora inicio" type="time" {...f('hora_inicio')} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField label="Hora inicio" type="time" {...f('hora_inicio')} slotProps={{ inputLabel: { shrink: !!form.hora_inicio } }} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField label="Hora fin" type="time" {...f('hora_fin')} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField label="Hora fin" type="time" {...f('hora_fin')} slotProps={{ inputLabel: { shrink: !!form.hora_fin } }} />
           </Grid>
         </Grid>
       </SectionCard>
@@ -200,35 +342,13 @@ export default function MantenimientoEdit() {
               label="Fecha sugerida próximo mantenimiento"
               type="date"
               {...f('fecha_sugerida_proximo_mantenimiento')}
-              slotProps={{ inputLabel: { shrink: true } }}
+              slotProps={{ inputLabel: { shrink: !!form.fecha_sugerida_proximo_mantenimiento } }}
             />
           </Grid>
           <Grid size={{ xs: 12 }}>
             <TextField label="Observaciones del técnico" {...f('observaciones_tecnico')} multiline rows={3} />
           </Grid>
         </Grid>
-      </SectionCard>
-
-      <SectionCard title="Checklist técnico">
-        {checklistItems.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">Cargando checklist...</Typography>
-        ) : (
-          <ChecklistGroup
-            items={checklistItems}
-            values={checklistValues}
-            onChange={(id, val) =>
-              setChecklistValues((p) => ({ ...p, [id]: val }))
-            }
-          />
-        )}
-      </SectionCard>
-
-      <SectionCard title="Evidencias fotográficas">
-        <EvidenciaUploader
-          evidencias={evidencias}
-          onUpload={handleUploadEvidencia}
-          onDelete={handleDeleteEvidencia}
-        />
       </SectionCard>
 
       <SectionCard title="Riesgos">
@@ -257,17 +377,102 @@ export default function MantenimientoEdit() {
         </Grid>
       </SectionCard>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-        <Button onClick={() => navigate(`/mantenimientos/${id}`)}>Cancelar</Button>
-        <Button
-          variant="contained"
-          startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-          onClick={handleSubmit}
-          disabled={saving}
-        >
-          Guardar cambios
-        </Button>
-      </Box>
+      <SectionCard title="Checklist técnico">
+        {checklistItems.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">Cargando checklist...</Typography>
+        ) : (
+          <ChecklistGroup
+            items={checklistItems}
+            values={checklistValues}
+            onChange={(itemId, val) =>
+              setChecklistValues((p) => ({ ...p, [itemId]: val }))
+            }
+          />
+        )}
+      </SectionCard>
+
+      <SectionCard title="Evidencias fotográficas">
+        <EvidenciaUploader
+          evidencias={evidencias}
+          onUpload={handleUploadEvidencia}
+          onDelete={handleDeleteEvidencia}
+        />
+      </SectionCard>
+
+      <SectionCard title="Firmas">
+        <Grid container spacing={4}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <SignaturePad
+              ref={firmaTecnicoRef}
+              label="Firma del técnico de TI"
+              tipoFirma="TECNICO"
+              defaultNombre={firmaNombres.tecnico || tecnicos.find((t) => t.id === form.tecnico)?.full_name || ''}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <SignaturePad
+              ref={firmaUsuarioRef}
+              label="Firma del usuario / colaborador"
+              tipoFirma="USUARIO"
+              defaultNombre={firmaNombres.usuario}
+            />
+          </Grid>
+        </Grid>
+      </SectionCard>
+
+      <SectionCard title="Acciones">
+        <Stack spacing={2}>
+          {pdfUrl && (
+            <FileActionButtons pdfUrl={pdfUrl} onGenerate={handleGenerarPDF} generating={generating} />
+          )}
+          <Stack direction="row" spacing={2} flexWrap="wrap">
+            <Button
+              variant="contained"
+              startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+              onClick={handleSubmit}
+              disabled={saving || completing}
+            >
+              Guardar cambios
+            </Button>
+
+            {!pdfUrl && (
+              <Button
+                variant="outlined"
+                startIcon={generating ? <CircularProgress size={16} color="inherit" /> : null}
+                onClick={handleGenerarPDF}
+                disabled={generating || saving}
+              >
+                Generar PDF
+              </Button>
+            )}
+
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={completing ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />}
+              onClick={handleCompletar}
+              disabled={completing || saving}
+            >
+              Completar mantenimiento
+            </Button>
+
+            <Button onClick={() => navigate(`/mantenimientos/${id}`)} disabled={saving || completing}>
+              Cancelar
+            </Button>
+          </Stack>
+        </Stack>
+      </SectionCard>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar((p) => ({ ...p, open: false }))}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

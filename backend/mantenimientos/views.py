@@ -54,6 +54,54 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
                 {'detail': 'El mantenimiento ya está completado.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        errores = []
+
+        # Datos generales
+        if not mantenimiento.equipo_id:
+            errores.append('Falta el equipo.')
+        if not mantenimiento.tecnico_id:
+            errores.append('Falta el técnico responsable.')
+        if not mantenimiento.fecha_ejecucion:
+            errores.append('Falta la fecha de ejecución.')
+        if not (mantenimiento.departamento_area or '').strip():
+            errores.append('Falta el departamento / área.')
+        if not (mantenimiento.responsable_area or '').strip():
+            errores.append('Falta el responsable del área.')
+
+        # Actividades
+        if not (mantenimiento.actividades_realizadas or '').strip():
+            errores.append('Falta describir las actividades realizadas.')
+
+        # Estado post-mantenimiento
+        if not (mantenimiento.estado_equipo_post or '').strip():
+            errores.append('Falta el estado del equipo post-mantenimiento.')
+        if not mantenimiento.fecha_sugerida_proximo_mantenimiento:
+            errores.append('Falta la fecha sugerida del próximo mantenimiento.')
+
+        # Firmas
+        tipos_firma = set(
+            mantenimiento.firmas.values_list('tipo_firma', flat=True)
+        )
+        firmas_data = {
+            f.tipo_firma: f for f in mantenimiento.firmas.all()
+        }
+        for tipo, label in [('TECNICO', 'técnico'), ('USUARIO', 'usuario')]:
+            if tipo not in tipos_firma:
+                errores.append(f'Falta la firma del {label}.')
+            else:
+                firma = firmas_data[tipo]
+                if not (firma.nombre_firmante or '').strip():
+                    errores.append(f'Falta el nombre del firmante ({label}).')
+                if not (firma.cargo_firmante or '').strip():
+                    errores.append(f'Falta el puesto/cargo del firmante ({label}).')
+
+        if errores:
+            return Response(
+                {'detail': 'No se puede completar el mantenimiento.', 'errores': errores},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         mantenimiento.estatus = 'COMPLETADO'
         mantenimiento.save(update_fields=['estatus', 'updated_at'])
 

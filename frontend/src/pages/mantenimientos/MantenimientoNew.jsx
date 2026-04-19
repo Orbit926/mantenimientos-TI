@@ -69,6 +69,7 @@ export default function MantenimientoNew() {
   const [generating, setGenerating] = useState(false);
   const [apiError, setApiError] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const firmaTecnicoRef = useRef(null);
   const firmaUsuarioRef = useRef(null);
@@ -130,13 +131,41 @@ export default function MantenimientoNew() {
     showSnack('Evidencia eliminada');
   };
 
-  const handleGuardar = async () => {
-    if (!form.equipo || !form.fecha_ejecucion || !form.tecnico) {
-      setApiError('Equipo, técnico y fecha son obligatorios.');
-      return;
+  const FIELD_LABELS = {
+    equipo: 'Equipo',
+    tecnico: 'Técnico responsable',
+    departamento_area: 'Departamento / Área',
+    responsable_area: 'Responsable del área',
+    fecha_ejecucion: 'Fecha de ejecución',
+    hora_inicio: 'Hora inicio',
+    hora_fin: 'Hora fin',
+    actividades_realizadas: 'Actividades realizadas',
+    estado_equipo_post: 'Estado del equipo',
+    fecha_sugerida_proximo_mantenimiento: 'Fecha próximo mantenimiento',
+  };
+
+  const handleApiFieldErrors = (e) => {
+    const data = e.responseData;
+    if (data && typeof data === 'object' && !data.detail) {
+      const fe = {};
+      const msgs = [];
+      Object.entries(data).forEach(([field, errs]) => {
+        const msg = Array.isArray(errs) ? errs[0] : errs;
+        fe[field] = msg;
+        const label = FIELD_LABELS[field] || field;
+        msgs.push(`${label}: ${msg}`);
+      });
+      setFieldErrors(fe);
+      setApiError(msgs.join(' · '));
+      return true;
     }
+    return false;
+  };
+
+  const handleGuardar = async () => {
     setSaving(true);
     setApiError('');
+    setFieldErrors({});
     try {
       const payload = { ...form, equipo: parseInt(form.equipo) };
       if (!payload.hora_inicio) delete payload.hora_inicio;
@@ -183,10 +212,38 @@ export default function MantenimientoNew() {
 
       showSnack('Mantenimiento guardado como borrador.');
     } catch (e) {
-      setApiError(e.message);
+      if (!handleApiFieldErrors(e)) setApiError(e.message);
+      throw e;
     } finally {
       setSaving(false);
     }
+  };
+
+  const validarParaCompletar = () => {
+    const errores = [];
+    const fe = {};
+    if (!form.equipo) { errores.push('Falta el equipo.'); fe.equipo = 'Obligatorio'; }
+    if (!form.tecnico) { errores.push('Falta el técnico responsable.'); fe.tecnico = 'Obligatorio'; }
+    if (!form.fecha_ejecucion) { errores.push('Falta la fecha de ejecución.'); fe.fecha_ejecucion = 'Obligatorio'; }
+    if (!form.hora_inicio) { errores.push('Falta la hora de inicio.'); fe.hora_inicio = 'Obligatorio'; }
+    if (!form.hora_fin) { errores.push('Falta la hora de fin.'); fe.hora_fin = 'Obligatorio'; }
+    if (!(form.departamento_area || '').trim()) { errores.push('Falta el departamento / área.'); fe.departamento_area = 'Obligatorio'; }
+    if (!(form.responsable_area || '').trim()) { errores.push('Falta el responsable del área.'); fe.responsable_area = 'Obligatorio'; }
+    if (!(form.actividades_realizadas || '').trim()) { errores.push('Falta describir las actividades realizadas.'); fe.actividades_realizadas = 'Obligatorio'; }
+    if (!form.estado_equipo_post) { errores.push('Falta el estado del equipo post-mantenimiento.'); fe.estado_equipo_post = 'Obligatorio'; }
+    if (!form.fecha_sugerida_proximo_mantenimiento) { errores.push('Falta la fecha sugerida del próximo mantenimiento.'); fe.fecha_sugerida_proximo_mantenimiento = 'Obligatorio'; }
+    setFieldErrors(fe);
+    const firmaT = firmaTecnicoRef.current;
+    const firmaU = firmaUsuarioRef.current;
+    firmaT?.markAllTouched();
+    firmaU?.markAllTouched();
+    if (!firmaT || firmaT.isEmpty()) { errores.push('Falta dibujar la firma del técnico.'); }
+    else if (firmaT.isNombreVacio()) { errores.push('Falta el nombre del firmante (técnico).'); }
+    else if (firmaT.isCargoVacio()) { errores.push('Falta el puesto del firmante (técnico).'); }
+    if (!firmaU || firmaU.isEmpty()) { errores.push('Falta dibujar la firma del usuario.'); }
+    else if (firmaU.isNombreVacio()) { errores.push('Falta el nombre del firmante (usuario).'); }
+    else if (firmaU.isCargoVacio()) { errores.push('Falta el puesto del firmante (usuario).'); }
+    return errores;
   };
 
   const handleCompletar = async () => {
@@ -194,13 +251,24 @@ export default function MantenimientoNew() {
       setApiError('Guarda el mantenimiento primero antes de completarlo.');
       return;
     }
+    const errores = validarParaCompletar();
+    if (errores.length > 0) {
+      setApiError(errores.join(' · '));
+      return;
+    }
     setCompleting(true);
     try {
+      await handleGuardar();
       await mantenimientosService.cerrar(mantenimientoId);
       showSnack('Mantenimiento completado correctamente.');
       navigate(`/mantenimientos/${mantenimientoId}`);
     } catch (e) {
-      setApiError(e.message);
+      const data = e.responseData;
+      if (data?.errores) {
+        setApiError(data.errores.join(' · '));
+      } else if (!handleApiFieldErrors(e)) {
+        setApiError(e.message);
+      }
     } finally {
       setCompleting(false);
     }
@@ -226,9 +294,11 @@ export default function MantenimientoNew() {
 
   const f = (name) => ({
     value: form[name] ?? '',
-    onChange: (e) => handleField(name, e.target.value),
+    onChange: (e) => { handleField(name, e.target.value); setFieldErrors((p) => ({ ...p, [name]: false })); },
     size: 'small',
     fullWidth: true,
+    error: !!fieldErrors[name],
+    helperText: fieldErrors[name] || '',
   });
 
   return (
@@ -245,7 +315,7 @@ export default function MantenimientoNew() {
       <SectionCard title="Datos generales">
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Equipo *" select {...f('equipo')}>
+            <TextField label="Equipo *" select {...f('equipo')} onChange={(e) => { handleField('equipo', e.target.value); setFieldErrors((p) => ({ ...p, equipo: false })); }}>
               {equipos.map((eq) => (
                 <MenuItem key={eq.id} value={eq.id}>
                   {eq.codigo_interno} — {eq.marca} {eq.modelo}
@@ -259,7 +329,7 @@ export default function MantenimientoNew() {
             )}
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Técnico responsable *" select {...f('tecnico')}>
+            <TextField label="Técnico responsable *" select {...f('tecnico')} onChange={(e) => { handleField('tecnico', e.target.value); setFieldErrors((p) => ({ ...p, tecnico: false })); }}>
               {tecnicos.map((t) => (
                 <MenuItem key={t.id} value={t.id}>
                   {t.full_name || `${t.first_name} ${t.last_name}`} — {t.puesto || 'Técnico'}
@@ -277,10 +347,10 @@ export default function MantenimientoNew() {
             <TextField label="Fecha de ejecución *" type="date" {...f('fecha_ejecucion')} slotProps={{ inputLabel: { shrink: true } }} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField label="Hora inicio" type="time" {...f('hora_inicio')} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField label="Hora inicio *" type="time" {...f('hora_inicio')} slotProps={{ inputLabel: { shrink: true } }} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
-            <TextField label="Hora fin" type="time" {...f('hora_fin')} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField label="Hora fin *" type="time" {...f('hora_fin')} slotProps={{ inputLabel: { shrink: true } }} />
           </Grid>
         </Grid>
       </SectionCard>
@@ -301,7 +371,7 @@ export default function MantenimientoNew() {
       <SectionCard title="Estado post-mantenimiento">
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField label="Estado del equipo" select {...f('estado_equipo_post')}>
+            <TextField label="Estado del equipo *" select {...f('estado_equipo_post')} onChange={(e) => { handleField('estado_equipo_post', e.target.value); setFieldErrors((p) => ({ ...p, estado_equipo_post: false })); }}>
               <MenuItem value=""><em>— Seleccionar —</em></MenuItem>
               {ESTADO_EQUIPO_CHOICES.map(({ value, label }) => (
                 <MenuItem key={value} value={value}>{label}</MenuItem>
@@ -310,7 +380,7 @@ export default function MantenimientoNew() {
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField
-              label="Fecha sugerida próximo mantenimiento"
+              label="Fecha sugerida próximo mantenimiento *"
               type="date"
               {...f('fecha_sugerida_proximo_mantenimiento')}
               slotProps={{ inputLabel: { shrink: true } }}
