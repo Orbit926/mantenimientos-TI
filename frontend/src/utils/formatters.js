@@ -17,7 +17,16 @@ export function daysFromToday(dateStr) {
   if (!dateStr) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr);
+  let target;
+  // Evitar el desfase de zona horaria cuando viene como 'YYYY-MM-DD'
+  if (typeof dateStr === 'string') {
+    const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) {
+      target = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    }
+  }
+  if (!target) target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
   return Math.round((target - today) / (1000 * 60 * 60 * 24));
 }
 

@@ -35,6 +35,12 @@ const DIAS_SEMANA = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 
 function toLocalDateKey(dateStr) {
   if (!dateStr) return null;
+  // Si viene como 'YYYY-MM-DD' (fecha pura), usarlo tal cual para evitar
+  // el desfase por zona horaria que aplica new Date() al interpretarlo como UTC.
+  if (typeof dateStr === 'string') {
+    const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  }
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return null;
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -69,14 +75,15 @@ function CalendarView({ equipos, onEquipoClick, onRegistrar, registrando }) {
   const offset = (firstDay.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const totalCells = Math.ceil((offset + daysInMonth) / 7) * 7;
-  const todayKey = toLocalDateKey(new Date().toISOString());
+  const fmtKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const todayKey = fmtKey(new Date());
 
   const cells = [];
   for (let i = 0; i < totalCells; i++) {
     const dayNum = i - offset + 1;
     const inMonth = dayNum >= 1 && dayNum <= daysInMonth;
     const date = inMonth ? new Date(year, month, dayNum) : null;
-    const key = date ? toLocalDateKey(date.toISOString()) : null;
+    const key = date ? fmtKey(date) : null;
     cells.push({ inMonth, dayNum, date, key, eventos: key ? eventosPorDia.get(key) ?? [] : [] });
   }
 
