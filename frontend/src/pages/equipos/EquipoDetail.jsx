@@ -129,10 +129,10 @@ export default function EquipoDetail() {
             <Box sx={{ mb: 1.5 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={600}>ESTADO</Typography>
               <Box sx={{ mt: 0.5 }}>
-                <StatusChip type="activo" value={equipo.activo} size="medium" />
+                <StatusChip type="equipo_estado" value={equipo.estado} size="medium" />
               </Box>
             </Box>
-            {!equipo.activo && (
+            {equipo.estado === 'BAJA' && (
               <>
                 <InfoRow label="Fecha de baja" value={formatDate(equipo.fecha_baja)} />
                 <InfoRow label="Motivo" value={equipo.motivo_baja} />

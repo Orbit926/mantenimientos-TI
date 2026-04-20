@@ -17,9 +17,15 @@ import {
   Chip,
   Stack,
   Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
@@ -48,6 +54,8 @@ export default function MantenimientoDetail() {
   const [error, setError] = useState('');
   const [completing, setCompleting] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const load = useCallback(() => {
@@ -77,6 +85,19 @@ export default function MantenimientoDetail() {
     }
   };
 
+  const handleEliminar = async () => {
+    setDeleting(true);
+    try {
+      await mantenimientosService.delete(id);
+      navigate('/mantenimientos', { replace: true });
+    } catch (e) {
+      showSnack(e.message, 'error');
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
+
   const handleGenerarPDF = async () => {
     setGenerating(true);
     try {
@@ -95,6 +116,7 @@ export default function MantenimientoDetail() {
   if (!mant) return null;
 
   const isCompleted = mant.estatus === 'COMPLETADO';
+  const isBorrador = mant.estatus === 'BORRADOR';
 
   return (
     <Box>
@@ -128,6 +150,17 @@ export default function MantenimientoDetail() {
                   Completar
                 </Button>
               </>
+            )}
+            {isBorrador && (
+              <Button
+                startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+                variant="outlined"
+                color="error"
+                onClick={() => setConfirmDelete(true)}
+                disabled={deleting || completing}
+              >
+                Eliminar borrador
+              </Button>
             )}
           </Stack>
         }
@@ -362,6 +395,21 @@ export default function MantenimientoDetail() {
           </Grid>
         )}
       </Grid>
+
+      <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)}>
+        <DialogTitle>Eliminar borrador</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            ¿Seguro que deseas eliminar este borrador? Esta acción no se puede deshacer.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDelete(false)}>Cancelar</Button>
+          <Button color="error" onClick={handleEliminar} disabled={deleting}>
+            {deleting ? <CircularProgress size={16} /> : 'Eliminar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}
