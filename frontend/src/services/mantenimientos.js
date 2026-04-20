@@ -8,6 +8,7 @@ export const mantenimientosService = {
   get: (id) => client.get(`/mantenimientos/${id}/`).then(r => r.data),
   create: (data) => client.post('/mantenimientos/', data).then(r => r.data),
   update: (id, data) => client.patch(`/mantenimientos/${id}/`, data).then(r => r.data),
+  delete: (id) => client.delete(`/mantenimientos/${id}/`).then(r => r.data),
 
   cerrar: (id) => client.post(`/mantenimientos/${id}/cerrar/`).then(r => r.data),
   generarPDF: (id) => client.post(`/mantenimientos/${id}/generar-pdf/`).then(r => r.data),

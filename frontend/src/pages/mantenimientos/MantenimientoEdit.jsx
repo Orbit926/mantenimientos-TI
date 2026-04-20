@@ -12,10 +12,16 @@ import {
   Typography,
   Snackbar,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { useParams, useNavigate } from 'react-router-dom';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
 import ChecklistGroup from '../../components/mantenimientos/ChecklistGroup';
@@ -25,7 +31,10 @@ import EvidenciaUploader from '../../components/mantenimientos/EvidenciaUploader
 import FileActionButtons from '../../components/common/FileActionButtons';
 import { mantenimientosService } from '../../services/mantenimientos';
 import { tecnicosService } from '../../services/tecnicos';
+import { equiposService } from '../../services/equipos';
 import { ESTADO_EQUIPO_CHOICES } from '../../utils/constants';
+import { todayISO } from '../../utils/formatters';
+import { useAuth } from '../../context/AuthContext';
 
 const EDITABLE = [
   'departamento_area', 'responsable_area', 'tecnico',
@@ -39,12 +48,23 @@ const EDITABLE = [
 export default function MantenimientoEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [form, setForm] = useState({});
+  const [searchParams] = useSearchParams();
+  const equipoIdParam = searchParams.get('equipoId');
+  const { user } = useAuth();
+  const isCreate = !id;
+  const [form, setForm] = useState(isCreate
+    ? { equipo: equipoIdParam || '', fecha_ejecucion: todayISO(), riesgo_presentado: false }
+    : {});
+  const [estatus, setEstatus] = useState('BORRADOR');
+  const [equipos, setEquipos] = useState([]);
+  const [selectedEquipo, setSelectedEquipo] = useState(null);
   const [tecnicos, setTecnicos] = useState([]);
   const [checklistItems, setChecklistItems] = useState([]);
   const [checklistValues, setChecklistValues] = useState({});
   const [evidencias, setEvidencias] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isCreate);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -68,7 +88,16 @@ export default function MantenimientoEdit() {
     setSnackbar({ open: true, message, severity });
 
   useEffect(() => {
-    tecnicosService.list({ activo: 'true' }).then((d) => setTecnicos(d.results ?? d));
+    tecnicosService.list({ activo: 'true' }).then((d) => {
+      const list = d.results ?? d;
+      setTecnicos(list);
+      if (isCreate && user) {
+        const self = list.find((t) => t.id === user.id);
+        if (self) setForm((p) => ({ ...p, tecnico: self.id }));
+      }
+    });
+
+    equiposService.list({ activo: 'true' }).then((d) => setEquipos(d.results ?? d));
 
     mantenimientosService.checklistItems().then((d) => {
       setChecklistItems(d.results ?? d);
@@ -82,10 +111,17 @@ export default function MantenimientoEdit() {
       setMaterialesCatalogo(mats.results ?? mats);
     }).finally(() => setLoadingCatalogos(false));
 
+    if (isCreate) return;
+
     mantenimientosService
       .get(id)
       .then((data) => {
-        const v = {};
+        if (data.estatus === 'COMPLETADO') {
+          navigate(`/mantenimientos/${id}`, { replace: true });
+          return;
+        }
+        setEstatus(data.estatus);
+        const v = { equipo: data.equipo };
         EDITABLE.forEach((f) => { v[f] = data[f] ?? ''; });
         setForm(v);
         if (data.actividades_realizadas) {
@@ -118,6 +154,7 @@ export default function MantenimientoEdit() {
       .finally(() => setLoading(false));
 
     mantenimientosService.getFirmas(id).then((firmas) => {
+      if (!firmas) return;
       const firmaTec = firmas.find?.((f) => f.tipo_firma === 'TECNICO');
       const firmaUsr = firmas.find?.((f) => f.tipo_firma === 'USUARIO');
       setFirmaDefaults({
@@ -132,12 +169,19 @@ export default function MantenimientoEdit() {
     }).catch(() => {});
   }, [id]);
 
+  useEffect(() => {
+    if (!equipos.length || !form.equipo) { setSelectedEquipo(null); return; }
+    const eq = equipos.find((e) => String(e.id) === String(form.equipo));
+    setSelectedEquipo(eq || null);
+  }, [form.equipo, equipos]);
+
   const handleField = (name, value) => {
     setForm((p) => ({ ...p, [name]: value }));
     setFieldErrors((p) => ({ ...p, [name]: false }));
   };
 
   const FIELD_LABELS = {
+    equipo: 'Equipo',
     tecnico: 'Técnico responsable',
     departamento_area: 'Departamento / Área',
     responsable_area: 'Responsable del área',
@@ -193,6 +237,11 @@ export default function MantenimientoEdit() {
   });
 
   const handleSubmit = async () => {
+    if (isCreate && !form.equipo) {
+      setFieldErrors((p) => ({ ...p, equipo: 'Obligatorio' }));
+      setApiError('Selecciona el equipo para guardar el borrador.');
+      return;
+    }
     setSaving(true);
     setApiError('');
     try {
@@ -201,9 +250,23 @@ export default function MantenimientoEdit() {
         actividades_realizadas: actividadesSeleccionadas.join(', '),
         materiales_utilizados: materialesSeleccionados.join(', '),
       };
+      if (isCreate) payload.equipo = parseInt(form.equipo);
       if (!payload.hora_fin) delete payload.hora_fin;
       if (!payload.hora_inicio) delete payload.hora_inicio;
+      if (!payload.fecha_ejecucion) delete payload.fecha_ejecucion;
       if (!payload.fecha_sugerida_proximo_mantenimiento) delete payload.fecha_sugerida_proximo_mantenimiento;
+
+      if (isCreate) {
+        const mant = await mantenimientosService.create(payload);
+        if (mant.existing_borrador) {
+          showSnack('Ya existe un borrador para este equipo. Abriendo...', 'info');
+        } else {
+          showSnack('Borrador creado correctamente.');
+        }
+        navigate(`/mantenimientos/${mant.id}/editar`, { replace: true });
+        return;
+      }
+
       await mantenimientosService.update(id, payload);
 
       const respuestas = Object.entries(checklistValues).map(([itemId, val]) => ({
@@ -241,6 +304,7 @@ export default function MantenimientoEdit() {
       }
 
       showSnack('Cambios guardados correctamente.');
+      return true;
     } catch (e) {
       if (!handleApiFieldErrors(e)) setApiError(e.message);
       throw e;
@@ -275,6 +339,19 @@ export default function MantenimientoEdit() {
     else if (usrCanvasOk && firmaU.isNombreVacio()) { errores.push('Falta el nombre del firmante (usuario).'); }
     else if (usrCanvasOk && firmaU.isCargoVacio()) { errores.push('Falta el puesto del firmante (usuario).'); }
     return errores;
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await mantenimientosService.delete(id);
+      showSnack('Borrador eliminado.');
+      navigate('/mantenimientos', { replace: true });
+    } catch (e) {
+      showSnack(e.responseData?.detail || e.message, 'error');
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   };
 
   const handleCompletar = async () => {
@@ -322,7 +399,10 @@ export default function MantenimientoEdit() {
 
   return (
     <Box>
-      <PageHeader title={`Editar mantenimiento #${id}`} backTo={`/mantenimientos/${id}`} />
+      <PageHeader
+        title={isCreate ? 'Nuevo mantenimiento' : `Editar mantenimiento #${id}`}
+        backTo={isCreate ? '/mantenimientos' : `/mantenimientos/${id}`}
+      />
 
       {apiError && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setApiError('')}>
@@ -332,6 +412,25 @@ export default function MantenimientoEdit() {
 
       <SectionCard title="Datos generales">
         <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              label={isCreate ? 'Equipo *' : 'Equipo'}
+              select
+              {...f('equipo')}
+              disabled={!isCreate || !!equipoIdParam}
+            >
+              {equipos.map((eq) => (
+                <MenuItem key={eq.id} value={eq.id}>
+                  {eq.codigo_interno} — {eq.marca} {eq.modelo}
+                </MenuItem>
+              ))}
+            </TextField>
+            {selectedEquipo && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                {selectedEquipo.colaborador_nombre} · {selectedEquipo.ubicacion}
+              </Typography>
+            )}
+          </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField label="Técnico responsable" select {...f('tecnico')}>
               {tecnicos.map((t) => (
@@ -434,6 +533,7 @@ export default function MantenimientoEdit() {
         </Grid>
       </SectionCard>
 
+      {!isCreate && (
       <SectionCard title="Checklist técnico">
         {checklistItems.length === 0 ? (
           <Typography variant="body2" color="text.secondary">Cargando checklist...</Typography>
@@ -447,7 +547,9 @@ export default function MantenimientoEdit() {
           />
         )}
       </SectionCard>
+      )}
 
+      {!isCreate && (
       <SectionCard title="Evidencias fotográficas">
         <EvidenciaUploader
           evidencias={evidencias}
@@ -455,7 +557,9 @@ export default function MantenimientoEdit() {
           onDelete={handleDeleteEvidencia}
         />
       </SectionCard>
+      )}
 
+      {!isCreate && (
       <SectionCard title="Firmas">
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -498,6 +602,7 @@ export default function MantenimientoEdit() {
           </Grid>
         </Grid>
       </SectionCard>
+      )}
 
       <SectionCard title="Acciones">
         <Stack spacing={2}>
@@ -509,12 +614,12 @@ export default function MantenimientoEdit() {
               variant="contained"
               startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
               onClick={handleSubmit}
-              disabled={saving || completing}
+              disabled={saving || completing || deleting}
             >
-              Guardar cambios
+              {isCreate ? 'Guardar borrador' : 'Guardar cambios'}
             </Button>
 
-            {!pdfUrl && (
+            {!isCreate && !pdfUrl && (
               <Button
                 variant="outlined"
                 startIcon={generating ? <CircularProgress size={16} color="inherit" /> : null}
@@ -525,22 +630,56 @@ export default function MantenimientoEdit() {
               </Button>
             )}
 
+            {!isCreate && (
             <Button
               variant="contained"
               color="success"
               startIcon={completing ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />}
               onClick={handleCompletar}
-              disabled={completing || saving}
+              disabled={completing || saving || deleting}
             >
               Completar mantenimiento
             </Button>
+            )}
 
-            <Button onClick={() => navigate(`/mantenimientos/${id}`)} disabled={saving || completing}>
+            <Button
+              onClick={() => navigate(isCreate ? '/mantenimientos' : `/mantenimientos/${id}`)}
+              disabled={saving || completing || deleting}
+            >
               Cancelar
             </Button>
+
+            {!isCreate && estatus === 'BORRADOR' && (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => setConfirmDelete(true)}
+                disabled={saving || completing || deleting}
+                sx={{ ml: 'auto' }}
+              >
+                Eliminar borrador
+              </Button>
+            )}
           </Stack>
         </Stack>
       </SectionCard>
+
+      <Dialog open={confirmDelete} onClose={() => !deleting && setConfirmDelete(false)}>
+        <DialogTitle>Eliminar borrador</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            ¿Seguro que deseas eliminar este borrador? Esta acción no se puede deshacer.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancelar</Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}>
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}

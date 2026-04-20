@@ -12,7 +12,6 @@ const EquipoNew = lazy(() => import('../pages/equipos/EquipoNew'));
 const EquipoDetail = lazy(() => import('../pages/equipos/EquipoDetail'));
 const EquipoEdit = lazy(() => import('../pages/equipos/EquipoEdit'));
 const MantenimientosList = lazy(() => import('../pages/mantenimientos/MantenimientosList'));
-const MantenimientoNew = lazy(() => import('../pages/mantenimientos/MantenimientoNew'));
 const MantenimientoDetail = lazy(() => import('../pages/mantenimientos/MantenimientoDetail'));
 const MantenimientoEdit = lazy(() => import('../pages/mantenimientos/MantenimientoEdit'));
 const ProximosMantenimientos = lazy(() => import('../pages/ProximosMantenimientos'));
@@ -44,7 +43,7 @@ const router = createBrowserRouter([
   { path: '/equipos/:id',                   element: protect(<EquipoDetail />) },
   { path: '/equipos/:id/editar',            element: protect(<EquipoEdit />) },
   { path: '/mantenimientos',                element: protect(<MantenimientosList />) },
-  { path: '/mantenimientos/nuevo',          element: protect(<MantenimientoNew />) },
+  { path: '/mantenimientos/nuevo',          element: protect(<MantenimientoEdit />) },
   { path: '/mantenimientos/:id',            element: protect(<MantenimientoDetail />) },
   { path: '/mantenimientos/:id/editar',     element: protect(<MantenimientoEdit />) },
   { path: '/proximos-mantenimientos',       element: protect(<ProximosMantenimientos />) },

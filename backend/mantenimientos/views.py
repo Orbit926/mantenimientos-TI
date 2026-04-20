@@ -74,10 +74,13 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
-        return Response(
-            {'detail': 'Método "DELETE" no permitido.'},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
+        mantenimiento = self.get_object()
+        if mantenimiento.estatus != 'BORRADOR':
+            return Response(
+                {'detail': 'Solo se pueden eliminar mantenimientos en estado BORRADOR.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'])
     def cerrar(self, request, pk=None):

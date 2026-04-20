@@ -61,15 +61,15 @@ class Mantenimiento(models.Model):
     ]
 
     equipo = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='mantenimientos')
-    departamento_area = models.CharField(max_length=200)
-    responsable_area = models.CharField(max_length=200)
+    departamento_area = models.CharField(max_length=200, blank=True, default='')
+    responsable_area = models.CharField(max_length=200, blank=True, default='')
     tecnico = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name='mantenimientos',
         null=True, blank=True,
     )
-    fecha_ejecucion = models.DateField()
+    fecha_ejecucion = models.DateField(null=True, blank=True)
     hora_inicio = models.TimeField(null=True, blank=True)
     hora_fin = models.TimeField(null=True, blank=True)
     actividades_realizadas = models.TextField(blank=True)
