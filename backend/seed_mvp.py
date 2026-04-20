@@ -9,6 +9,9 @@ django.setup()
 
 from mantenimientos.models import ChecklistItem, ChecklistRespuesta, Mantenimiento
 from equipos.models import Equipo
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 print("=" * 50)
 print("SEED MVP - Agrega datos sin borrar existentes")
@@ -38,13 +41,6 @@ colaboradores = [
     ('Gabriela Morales Vega',    'gabriela.morales@chivas.mx',  'Asistente Ejecutiva'),
     ('Javier Ruiz Medina',       'javier.ruiz@chivas.mx',       'Analista de Marketing'),
     ('Laura Vega Sandoval',      'laura.vega@chivas.mx',        'Contadora General'),
-]
-
-tecnicos = [
-    'Ing. Roberto Guzmán López',
-    'Ing. Alejandro Pérez Soto',
-    'Téc. Mario Cervantes Mora',
-    'Ing. Diana Flores Morales',
 ]
 
 actividades_pool = [
@@ -114,9 +110,10 @@ for i, (codigo, tipo, marca, modelo, serie) in enumerate(nuevos):
     activo = i < len(nuevos) - 3
     ultimo = hoy - timedelta(days=randint(60, 300))
     proximo = ultimo + timedelta(days=randint(90, 180))
+    estado_eq = 'ACTIVO' if activo else 'BAJA'
     equipos_bulk.append(Equipo(
         codigo_interno=codigo,
-        tipo_equipo=tipo,
+        tipo_equipo=tipo.upper(),
         marca=marca,
         modelo=modelo,
         numero_serie=serie,
@@ -124,10 +121,12 @@ for i, (codigo, tipo, marca, modelo, serie) in enumerate(nuevos):
         colaborador_nombre=colab[0],
         colaborador_correo=colab[1],
         colaborador_puesto=colab[2],
+        estado=estado_eq,
         activo=activo,
         fecha_proximo_mantenimiento=proximo,
         fecha_ultimo_mantenimiento=ultimo,
-        motivo_baja='Equipo fuera de garantía, reemplazado' if i >= len(nuevos) - 3 else None,
+        fecha_baja=(hoy - timedelta(days=30)) if not activo else None,
+        motivo_baja='Equipo fuera de garantía, reemplazado' if not activo else None,
     ))
 
 Equipo.objects.bulk_create(equipos_bulk)
@@ -138,6 +137,32 @@ print(f"   ✓ {len(equipos_db)} equipos creados")
 # --- MANTENIMIENTOS ---
 print("\n🔧 Creando mantenimientos...")
 departamentos = ['TI', 'Operaciones', 'Recursos Humanos', 'Finanzas', 'Marketing', 'Dirección Deportiva']
+
+# Crear técnico específico para los mantenimientos
+tecnico_username = 'rguzman'
+tecnico_user, created = User.objects.get_or_create(
+    username=tecnico_username,
+    defaults={
+        'first_name': 'Roberto',
+        'last_name': 'Guzmán López',
+        'email': 'roberto.guzman@chivas.mx',
+        'puesto': 'Técnico de Soporte TI',
+        'is_staff': True,
+    }
+)
+if created:
+    tecnico_user.set_password('TecChivas2024!')
+    tecnico_user.save()
+    print(f"   ✓ Técnico creado: {tecnico_user.get_full_name()} ({tecnico_username})")
+else:
+    print(f"   ✓ Técnico existente: {tecnico_user.get_full_name()} ({tecnico_username})")
+
+# Verificar que los equipos tengan colaborador
+print(f"   Verificando {len(equipos_db)} equipos con colaborador asignado...")
+for eq in equipos_db:
+    if not eq.colaborador_nombre:
+        print(f"   ⚠️ Equipo {eq.codigo_interno} sin colaborador")
+
 mants_bulk = []
 for eq in equipos_db[:22]:
     n_mants = randint(1, 3)
@@ -148,7 +173,7 @@ for eq in equipos_db[:22]:
             equipo=eq,
             departamento_area=choice(departamentos),
             responsable_area=eq.colaborador_nombre,
-            tecnico_nombre=choice(tecnicos),
+            tecnico=tecnico_user,
             fecha_ejecucion=fecha,
             hora_inicio=None,
             hora_fin=None,
@@ -183,7 +208,7 @@ for mant in mants_db:
             ])
         ))
 
-ChecklistRespuesta.objects.bulk_create(respuestas)
+#ChecklistRespuesta.objects.bulk_create(respuestas, ignore_conflicts=True)
 print(f"   ✓ {len(respuestas)} respuestas de checklist creadas")
 
 print()
