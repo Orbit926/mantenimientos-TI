@@ -38,9 +38,10 @@ client.interceptors.response.use(
         original.headers['Authorization'] = `Bearer ${newAccess}`;
         return client(original);
       } catch {
+        const hadSession = !!localStorage.getItem('access') || !!localStorage.getItem('refresh');
         localStorage.removeItem('access');
         localStorage.removeItem('refresh');
-        window.location.href = '/login';
+        if (hadSession) window.location.href = '/login';
         return Promise.reject(err);
       }
     }
@@ -57,6 +58,7 @@ client.interceptors.response.use(
       'Error inesperado. Intenta de nuevo.';
     const error = new Error(message);
     error.responseData = err.response?.data;
+    error.status = err.response?.status;
     return Promise.reject(error);
   }
 );

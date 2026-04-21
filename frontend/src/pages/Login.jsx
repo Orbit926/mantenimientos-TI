@@ -27,20 +27,35 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [inputError, setInputError] = useState(false);
+
+  const handleChange = (field) => (e) => {
+    setForm((p) => ({ ...p, [field]: e.target.value }));
+    if (error) {
+      setError('');
+      setInputError(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.username || !form.password) {
       setError('Ingresa usuario y contraseña.');
+      setInputError(true);
       return;
     }
     setLoading(true);
     setError('');
+    setInputError(false);
     try {
       await login(form.username.trim(), form.password);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err.message || 'Credenciales incorrectas.');
+      const isServerError = err.status >= 500;
+      setError(isServerError
+        ? 'Hay un problema, inténtalo de nuevo más tarde.'
+        : 'Usuario y/o contraseña incorrectos.');
+      setInputError(!isServerError);
     } finally {
       setLoading(false);
     }
@@ -94,7 +109,8 @@ export default function Login() {
               autoComplete="username"
               autoFocus
               value={form.username}
-              onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+              onChange={handleChange('username')}
+              error={inputError}
               sx={{ mb: 2 }}
             />
             <TextField
@@ -104,7 +120,8 @@ export default function Login() {
               type={showPass ? 'text' : 'password'}
               autoComplete="current-password"
               value={form.password}
-              onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+              onChange={handleChange('password')}
+              error={inputError}
               sx={{ mb: 3 }}
               slotProps={{
                 input: {
