@@ -42,7 +42,11 @@ class DashboardResumenView(APIView):
 class DashboardProximosView(APIView):
     def get(self, request):
         hoy = date.today()
-        limite = hoy + timedelta(days=_DIAS_PROXIMO)
+        try:
+            dias = int(request.query_params.get('dias', _DIAS_PROXIMO))
+        except (TypeError, ValueError):
+            dias = _DIAS_PROXIMO
+        limite = hoy + timedelta(days=dias)
         equipos = Equipo.objects.filter(
             fecha_proximo_mantenimiento__lte=limite,
         ).exclude(estado='BAJA').order_by('fecha_proximo_mantenimiento')

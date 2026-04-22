@@ -204,12 +204,14 @@ export default function ProximosMantenimientos() {
   };
 
   useEffect(() => {
+    setLoading(true);
+    const dias = vista === 'calendario' ? 730 : 30;
     dashboardService
-      .proximos()
+      .proximos(dias)
       .then((data) => setEquipos(data.results ?? data))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [vista]);
 
   const sorted = [...equipos].sort((a, b) => {
     const da = daysFromToday(a.fecha_proximo_mantenimiento) ?? 9999;
