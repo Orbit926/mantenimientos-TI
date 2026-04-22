@@ -25,6 +25,7 @@ import SectionCard from '../../components/common/SectionCard';
 import StatusChip from '../../components/common/StatusChip';
 import BajaDialog from '../../components/equipos/BajaDialog';
 import { equiposService } from '../../services/equipos';
+import { useIniciarMantenimiento } from '../../hooks/useIniciarMantenimiento';
 import { formatDate, formatDateTime } from '../../utils/formatters';
 import { TIPO_EQUIPO_MAP } from '../../utils/constants';
 
@@ -49,6 +50,8 @@ export default function EquipoDetail() {
   const [bajaOpen, setBajaOpen] = useState(false);
   const [bajaLoading, setBajaLoading] = useState(false);
   const [bajaError, setBajaError] = useState('');
+  const { iniciar, registrandoId } = useIniciarMantenimiento();
+  const registrando = registrandoId !== null;
 
   const load = useCallback(() => {
     setLoading(true);
@@ -89,9 +92,10 @@ export default function EquipoDetail() {
         actions={
           <>
             <Button
-              startIcon={<BuildIcon />}
+              startIcon={registrando ? <CircularProgress size={16} color="inherit" /> : <BuildIcon />}
               variant="contained"
-              onClick={() => navigate(`/mantenimientos/nuevo?equipoId=${equipo.id}`)}
+              disabled={registrando}
+              onClick={() => iniciar(equipo.id)}
             >
               Registrar mantenimiento
             </Button>

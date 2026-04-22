@@ -30,6 +30,7 @@ import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
 import BajaDialog from '../../components/equipos/BajaDialog';
 import { equiposService } from '../../services/equipos';
+import { useIniciarMantenimiento } from '../../hooks/useIniciarMantenimiento';
 import { formatDate } from '../../utils/formatters';
 import { TIPO_EQUIPO_MAP } from '../../utils/constants';
 
@@ -52,6 +53,7 @@ export default function EquiposList() {
   const [bajaTarget, setBajaTarget] = useState(null);
   const [bajaLoading, setBajaLoading] = useState(false);
   const [bajaError, setBajaError] = useState('');
+  const { iniciar, registrandoId } = useIniciarMantenimiento();
 
   const load = useCallback(() => {
     setLoading(true);
@@ -212,7 +214,8 @@ export default function EquiposList() {
                         <IconButton
                           size="small"
                           color="primary"
-                          onClick={() => navigate(`/mantenimientos/nuevo?equipoId=${eq.id}`)}
+                          disabled={registrandoId === eq.id}
+                          onClick={() => iniciar(eq.id)}
                         >
                           <BuildIcon fontSize="small" />
                         </IconButton>

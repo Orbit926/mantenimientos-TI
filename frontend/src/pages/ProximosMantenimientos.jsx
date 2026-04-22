@@ -26,7 +26,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/common/PageHeader';
 import { dashboardService } from '../services/dashboard';
-import { mantenimientosService } from '../services/mantenimientos';
+import { useIniciarMantenimiento } from '../hooks/useIniciarMantenimiento';
 import { formatDate, daysFromToday } from '../utils/formatters';
 import { TIPO_EQUIPO_MAP } from '../utils/constants';
 
@@ -184,24 +184,10 @@ export default function ProximosMantenimientos() {
   const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [registrando, setRegistrando] = useState(null);
   const [vista, setVista] = useState('tabla');
+  const { iniciar, registrandoId: registrando, error: iniciarError } = useIniciarMantenimiento();
 
-  const handleRegistrar = async (eq) => {
-    setRegistrando(eq.id);
-    try {
-      const borrador = await mantenimientosService.getBorradorByEquipo(eq.id);
-      if (borrador) {
-        navigate(`/mantenimientos/${borrador.id}/editar`);
-      } else {
-        navigate(`/mantenimientos/nuevo?equipoId=${eq.id}`);
-      }
-    } catch {
-      navigate(`/mantenimientos/nuevo?equipoId=${eq.id}`);
-    } finally {
-      setRegistrando(null);
-    }
-  };
+  const handleRegistrar = (eq) => iniciar(eq.id);
 
   useEffect(() => {
     setLoading(true);
@@ -226,7 +212,7 @@ export default function ProximosMantenimientos() {
         subtitle="Equipos con mantenimiento próximo o vencido en los próximos 30 días"
       />
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {(error || iniciarError) && <Alert severity="error" sx={{ mb: 2 }}>{error || iniciarError}</Alert>}
 
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
         <ToggleButtonGroup

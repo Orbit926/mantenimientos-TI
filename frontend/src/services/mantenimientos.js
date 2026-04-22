@@ -7,6 +7,9 @@ export const mantenimientosService = {
       .then(r => { const d = r.data; const items = d.results ?? d; return items[0] || null; }),
   get: (id) => client.get(`/mantenimientos/${id}/`).then(r => r.data),
   create: (data) => client.post('/mantenimientos/', data).then(r => r.data),
+  // Crea un borrador para el equipo o devuelve el existente (el backend lo maneja).
+  iniciarBorrador: (equipoId) =>
+    client.post('/mantenimientos/', { equipo: equipoId }).then(r => r.data),
   update: (id, data) => client.patch(`/mantenimientos/${id}/`, data).then(r => r.data),
   delete: (id) => client.delete(`/mantenimientos/${id}/`).then(r => r.data),
 

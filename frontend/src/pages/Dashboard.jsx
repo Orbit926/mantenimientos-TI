@@ -24,6 +24,7 @@ import PageHeader from '../components/common/PageHeader';
 import StatCard from '../components/common/StatCard';
 import StatusChip from '../components/common/StatusChip';
 import { dashboardService } from '../services/dashboard';
+import { useIniciarMantenimiento } from '../hooks/useIniciarMantenimiento';
 import { formatDate, daysFromToday } from '../utils/formatters';
 
 function DaysBadge({ dateStr }) {
@@ -51,6 +52,7 @@ export default function Dashboard() {
   const [realizados, setRealizados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { iniciar, registrandoId } = useIniciarMantenimiento();
 
   useEffect(() => {
     Promise.all([
@@ -176,7 +178,8 @@ export default function Dashboard() {
                           <Button
                             size="small"
                             variant="outlined"
-                            onClick={() => navigate(`/mantenimientos/nuevo?equipoId=${eq.id}`)}
+                            disabled={registrandoId === eq.id}
+                            onClick={() => iniciar(eq.id)}
                           >
                             Registrar
                           </Button>
