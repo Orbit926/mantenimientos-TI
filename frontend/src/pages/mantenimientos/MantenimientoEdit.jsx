@@ -26,6 +26,7 @@ import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
 import ChecklistGroup from '../../components/mantenimientos/ChecklistGroup';
 import SignaturePad from '../../components/mantenimientos/SignaturePad';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import CatalogoCheckboxList from '../../components/mantenimientos/CatalogoCheckboxList';
 import EvidenciaUploader from '../../components/mantenimientos/EvidenciaUploader';
 import FileActionButtons from '../../components/common/FileActionButtons';
@@ -65,6 +66,7 @@ export default function MantenimientoEdit() {
   const [loading, setLoading] = useState(!isCreate);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmCompletar, setConfirmCompletar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -354,17 +356,23 @@ export default function MantenimientoEdit() {
     }
   };
 
-  const handleCompletar = async () => {
+  const handleCompletar = () => {
     const errores = validarParaCompletar();
     if (errores.length > 0) {
       showSnack(errores[0], 'error');
       setApiError(errores.join(' · '));
       return;
     }
+    setApiError('');
+    setConfirmCompletar(true);
+  };
+
+  const confirmarCompletar = async () => {
     setCompleting(true);
     try {
       await handleSubmit();
       await mantenimientosService.cerrar(id);
+      setConfirmCompletar(false);
       showSnack('Mantenimiento completado correctamente.');
       navigate(`/mantenimientos/${id}`);
     } catch (e) {
@@ -376,20 +384,38 @@ export default function MantenimientoEdit() {
         showSnack(e.message, 'error');
         setApiError(e.message);
       }
+      setConfirmCompletar(false);
     } finally {
       setCompleting(false);
     }
   };
 
   const handleGenerarPDF = async () => {
+    // Validar los campos mínimos que exige el backend para generar el PDF.
+    const fe = {};
+    const errores = [];
+    if (!form.tecnico) { fe.tecnico = 'Obligatorio para generar el PDF'; errores.push('Falta el técnico responsable.'); }
+    if (!form.fecha_ejecucion) { fe.fecha_ejecucion = 'Obligatorio para generar el PDF'; errores.push('Falta la fecha de ejecución.'); }
+    if (errores.length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...fe }));
+      setApiError(errores.join(' · '));
+      showSnack(errores[0], 'error');
+      return;
+    }
+
     setGenerating(true);
     try {
+      // Guardamos antes por si hay cambios pendientes que todavía no se persisten.
+      await handleSubmit();
       const mant = await mantenimientosService.generarPDF(id);
       const url = mant.documento_pdf_url || '';
       setPdfUrl(url);
       showSnack('PDF generado correctamente.');
     } catch (e) {
-      setApiError(e.message);
+      if (!handleApiFieldErrors(e)) {
+        setApiError(e.message);
+        showSnack(e.message, 'error');
+      }
     } finally {
       setGenerating(false);
     }
@@ -664,6 +690,17 @@ export default function MantenimientoEdit() {
           </Stack>
         </Stack>
       </SectionCard>
+
+      <ConfirmDialog
+        open={confirmCompletar}
+        onClose={() => !completing && setConfirmCompletar(false)}
+        onConfirm={confirmarCompletar}
+        title="Completar mantenimiento"
+        message="¿Estás seguro que quieres completar el mantenimiento? Una vez completado no podrá modificarse."
+        confirmLabel="Completar"
+        confirmColor="success"
+        loading={completing}
+      />
 
       <Dialog open={confirmDelete} onClose={() => !deleting && setConfirmDelete(false)}>
         <DialogTitle>Eliminar borrador</DialogTitle>

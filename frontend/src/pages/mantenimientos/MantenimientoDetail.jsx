@@ -31,6 +31,7 @@ import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
 import StatusChip from '../../components/common/StatusChip';
 import FileActionButtons from '../../components/common/FileActionButtons';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { mantenimientosService } from '../../services/mantenimientos';
 import { formatDate, formatDateTime } from '../../utils/formatters';
 import { ESTADO_EQUIPO_MAP } from '../../utils/constants';
@@ -56,6 +57,7 @@ export default function MantenimientoDetail() {
   const [generating, setGenerating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmCompletar, setConfirmCompletar] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const load = useCallback(() => {
@@ -76,6 +78,7 @@ export default function MantenimientoDetail() {
     setCompleting(true);
     try {
       await mantenimientosService.cerrar(id);
+      setConfirmCompletar(false);
       showSnack('Mantenimiento marcado como completado.');
       load();
     } catch (e) {
@@ -144,7 +147,7 @@ export default function MantenimientoDetail() {
                   startIcon={completing ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />}
                   variant="contained"
                   color="success"
-                  onClick={handleCompletar}
+                  onClick={() => setConfirmCompletar(true)}
                   disabled={completing}
                 >
                   Completar
@@ -395,6 +398,17 @@ export default function MantenimientoDetail() {
           </Grid>
         )}
       </Grid>
+
+      <ConfirmDialog
+        open={confirmCompletar}
+        onClose={() => setConfirmCompletar(false)}
+        onConfirm={handleCompletar}
+        title="Completar mantenimiento"
+        message="¿Estás seguro que quieres completar el mantenimiento? Una vez completado no podrá modificarse."
+        confirmLabel="Completar"
+        confirmColor="success"
+        loading={completing}
+      />
 
       <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)}>
         <DialogTitle>Eliminar borrador</DialogTitle>

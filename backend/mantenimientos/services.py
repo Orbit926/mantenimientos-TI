@@ -6,7 +6,53 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.template.loader import render_to_string
 from django.utils import timezone
+from PIL import Image, ImageDraw, ImageFont
 from xhtml2pdf import pisa
+
+
+_WATERMARK_CACHE = {}
+
+
+def _watermark_borrador_b64(texto='BORRADOR'):
+    """Genera (y cachea) una imagen PNG con el texto en diagonal para marca de agua."""
+    if texto in _WATERMARK_CACHE:
+        return _WATERMARK_CACHE[texto]
+
+    W, H = 1400, 1800
+    img = Image.new('RGBA', (W, H), (255, 255, 255, 0))
+
+    # Lienzo auxiliar para rotar el texto
+    txt_layer = Image.new('RGBA', (1800, 400), (255, 255, 255, 0))
+    draw = ImageDraw.Draw(txt_layer)
+
+    font = None
+    for path in [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+        '/Library/Fonts/Arial Bold.ttf',
+    ]:
+        if os.path.exists(path):
+            try:
+                font = ImageFont.truetype(path, 260)
+                break
+            except Exception:
+                pass
+    if font is None:
+        font = ImageFont.load_default()
+
+    # Texto rojo tenue, semitransparente
+    draw.text((40, 40), texto, font=font, fill=(200, 0, 0, 75))
+
+    rotated = txt_layer.rotate(30, expand=1, resample=Image.BICUBIC)
+    x = (W - rotated.width) // 2
+    y = (H - rotated.height) // 2
+    img.paste(rotated, (x, y), rotated)
+
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    data_uri = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
+    _WATERMARK_CACHE[texto] = data_uri
+    return data_uri
 
 
 def _imagen_a_base64(field):
@@ -48,6 +94,7 @@ def generar_pdf_mantenimiento(mantenimiento):
         'firma_usuario': firmas.get('USUARIO'),
         'firma_tecnico_b64': _imagen_a_base64(firmas['TECNICO'].firma_imagen) if 'TECNICO' in firmas else None,
         'firma_usuario_b64': _imagen_a_base64(firmas['USUARIO'].firma_imagen) if 'USUARIO' in firmas else None,
+        'watermark_b64': _watermark_borrador_b64() if mantenimiento.estatus != 'COMPLETADO' else None,
     }
 
     html_string = render_to_string('pdf/mantenimiento.html', context)
