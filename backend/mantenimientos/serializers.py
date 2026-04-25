@@ -12,9 +12,6 @@ class EvidenciaSerializer(serializers.ModelSerializer):
         extra_kwargs = {'imagen': {'write_only': True}}
 
     def get_imagen_url(self, obj):
-        request = self.context.get('request')
-        if obj.imagen and request:
-            return request.build_absolute_uri(obj.imagen.url)
         return obj.imagen.url if obj.imagen else None
 
 
@@ -78,10 +75,7 @@ class FirmaSerializer(serializers.ModelSerializer):
         extra_kwargs = {'firma_imagen': {'write_only': True}}
 
     def get_firma_imagen_url(self, obj):
-        request = self.context.get('request')
-        if obj.firma_imagen and request:
-            return request.build_absolute_uri(obj.firma_imagen.url)
-        return None
+        return obj.firma_imagen.url if obj.firma_imagen else None
 
 
 class MantenimientoListSerializer(serializers.ModelSerializer):
@@ -130,10 +124,7 @@ class MantenimientoDetailSerializer(serializers.ModelSerializer):
         return obj.tecnico.username if obj.tecnico else ''
 
     def get_documento_pdf_url(self, obj):
-        request = self.context.get('request')
-        if obj.documento_pdf and request:
-            return request.build_absolute_uri(obj.documento_pdf.url)
-        return None
+        return obj.documento_pdf.url if obj.documento_pdf else None
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)

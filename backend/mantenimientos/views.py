@@ -184,7 +184,7 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
         return Response({
-            'documento_pdf_url': request.build_absolute_uri(mantenimiento.documento_pdf.url),
+            'documento_pdf_url': mantenimiento.documento_pdf.url,
             'generado_en': mantenimiento.documento_pdf_generado_en,
         })
 
