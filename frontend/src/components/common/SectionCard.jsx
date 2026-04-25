@@ -1,6 +1,6 @@
 import { Card, CardContent, Typography, Divider, Box } from '@mui/material';
 
-export default function SectionCard({ title, children, sx = {} }) {
+export default function SectionCard({ title, subtitle, children, sx = {} }) {
   return (
     <Card sx={{ mb: 3, ...sx }}>
       {title && (
@@ -12,6 +12,11 @@ export default function SectionCard({ title, children, sx = {} }) {
             >
               {title}
             </Typography>
+            {subtitle && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                {subtitle}
+              </Typography>
+            )}
           </Box>
           <Divider />
         </>

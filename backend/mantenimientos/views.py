@@ -147,6 +147,14 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
             equipo.fecha_proximo_mantenimiento = mantenimiento.fecha_sugerida_proximo_mantenimiento
         equipo.save(update_fields=['fecha_ultimo_mantenimiento', 'fecha_proximo_mantenimiento'])
 
+        # Regenera el PDF final (sin marca de agua) reemplazando el del borrador.
+        try:
+            mantenimiento = generar_pdf_mantenimiento(mantenimiento)
+        except Exception:
+            # No bloqueamos el cierre si falla la generación del PDF; el usuario
+            # podrá generarlo manualmente desde el detalle.
+            pass
+
         return Response(
             MantenimientoDetailSerializer(mantenimiento, context={'request': request}).data
         )

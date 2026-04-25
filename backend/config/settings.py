@@ -37,6 +37,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Permite que el frontend muestre el PDF (servido en /media/) dentro de un iframe del mismo origen.
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [

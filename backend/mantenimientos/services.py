@@ -9,6 +9,8 @@ from django.utils import timezone
 from PIL import Image, ImageDraw, ImageFont
 from xhtml2pdf import pisa
 
+from .models import ChecklistItem
+
 
 _WATERMARK_CACHE = {}
 
@@ -85,10 +87,25 @@ def generar_pdf_mantenimiento(mantenimiento):
             'imagen_b64': _imagen_a_base64(ev.imagen),
         })
 
+    # Checklist completo: todos los items activos + respuesta (si la hay).
+    respuestas_por_item = {
+        r.checklist_item_id: r
+        for r in mantenimiento.checklist_respuestas.select_related('checklist_item').all()
+    }
+    checklist = []
+    for item in ChecklistItem.objects.filter(activo=True).order_by('categoria', 'orden', 'nombre'):
+        resp = respuestas_por_item.get(item.id)
+        checklist.append({
+            'nombre': item.nombre,
+            'categoria': item.categoria or '',
+            'realizado': bool(resp and resp.realizado),
+            'observacion': resp.observacion if resp else '',
+        })
+
     context = {
         'mantenimiento': mantenimiento,
         'equipo': mantenimiento.equipo,
-        'checklist': mantenimiento.checklist_respuestas.select_related('checklist_item').all(),
+        'checklist': checklist,
         'evidencias': evidencias,
         'firma_tecnico': firmas.get('TECNICO'),
         'firma_usuario': firmas.get('USUARIO'),
@@ -103,6 +120,13 @@ def generar_pdf_mantenimiento(mantenimiento):
 
     if status.err:
         raise Exception('Error al generar el PDF del mantenimiento.')
+
+    # Eliminar archivo previo (si existe) para no acumular PDFs en disco.
+    if mantenimiento.documento_pdf:
+        try:
+            mantenimiento.documento_pdf.delete(save=False)
+        except Exception:
+            pass
 
     filename = f'mantenimiento_{mantenimiento.id}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.pdf'
     mantenimiento.documento_pdf.save(filename, ContentFile(buffer.getvalue()), save=False)

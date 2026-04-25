@@ -50,6 +50,12 @@
     .evidencia-tipo { font-weight: bold; background-color: #f0f4f8; padding: 3px 6px; margin-bottom: 4px; }
     .evidencia-desc { font-size: 9px; color: #555; margin-bottom: 4px; }
     .evidencia-img { max-width: 100%; max-height: 320px; display: block; margin: 0 auto; }
+
+    .declaracion { border: 1px solid #1e3a5f; padding: 10px 14px; margin-top: 6px; background-color: #f7f9fc; line-height: 1.5; }
+    .declaracion p { margin: 4px 0; }
+    .anexo-separador { page-break-before: always; text-align: center; margin: 0 0 12px 0; }
+    .anexo-separador h2 { display: inline-block; background-color: #555; color: #fff; padding: 6px 14px; margin: 0; font-size: 11px; }
+    .anexo-nota { font-size: 9px; color: #777; text-align: center; margin-bottom: 12px; font-style: italic; }
   </style>
 </head>
 <body>
@@ -95,30 +101,6 @@
     <tr><td>{{ mantenimiento.materiales_utilizados|default:"—"|linebreaksbr }}</td></tr>
   </table>
 
-  <h2>Checklist Técnico</h2>
-  <table>
-    <tr>
-      <th style="width:50%;">Actividad</th>
-      <th style="width:15%; text-align:center;">Realizado</th>
-      <th>Observaciones</th>
-    </tr>
-    {% for resp in checklist %}
-    <tr>
-      <td>{{ resp.checklist_item.nombre }}</td>
-      <td style="text-align:center;">
-        {% if resp.realizado %}
-          <span class="check-si">&#10003; Sí</span>
-        {% else %}
-          <span class="check-no">&#10007; No</span>
-        {% endif %}
-      </td>
-      <td>{{ resp.observacion|default:"—" }}</td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="3" style="text-align:center; color:#888;">Sin checklist registrado</td></tr>
-    {% endfor %}
-  </table>
-
   <h2>Estado del Equipo Post-Mantenimiento</h2>
   <table>
     <tr><th>Estado</th><td>{{ mantenimiento.get_estado_equipo_post_display|default:"—" }}</td></tr>
@@ -153,6 +135,17 @@
   {% endfor %}
   {% endif %}
 
+  <h2>Declaración de Conformidad del Usuario</h2>
+  <div class="declaracion">
+    <p>Yo, <strong>{{ firma_usuario.nombre_firmante|default:"_______________________________" }}</strong>, declaro que:</p>
+    <p>
+      &bull; He verificado el estado del equipo/área tras la intervención.<br/>
+      &bull; La información brindada por el técnico es clara y suficiente.<br/>
+      &bull; Acepto las actividades realizadas y su resultado conforme a lo descrito.<br/>
+      &bull; Cualquier observación adicional fue registrada en este documento.
+    </p>
+  </div>
+
   <h2>Conformidad y Firmas</h2>
   <table class="firmas-tabla">
     <tr>
@@ -179,6 +172,35 @@
         <div class="firma-cargo">{{ firma_usuario.cargo_firmante|default:"" }}</div>
       </td>
     </tr>
+  </table>
+
+  <div class="anexo-separador">
+    <h2>Anexo Técnico de Evidencia</h2>
+  </div>
+  <div class="anexo-nota">Uso interno del área de TI. Esta sección no forma parte del documento de conformidad firmado por el usuario.</div>
+
+  <h2>Checklist Técnico</h2>
+  <table>
+    <tr>
+      <th style="width:50%;">Actividad</th>
+      <th style="width:15%; text-align:center;">Realizado</th>
+      <th>Observaciones</th>
+    </tr>
+    {% for item in checklist %}
+    <tr>
+      <td>{{ item.nombre }}</td>
+      <td style="text-align:center;">
+        {% if item.realizado %}
+          <span class="check-si">&#10003; Sí</span>
+        {% else %}
+          <span class="check-no">&#10007; No</span>
+        {% endif %}
+      </td>
+      <td>{{ item.observacion|default:"—" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="3" style="text-align:center; color:#888;">Sin items de checklist configurados</td></tr>
+    {% endfor %}
   </table>
 
 </body>

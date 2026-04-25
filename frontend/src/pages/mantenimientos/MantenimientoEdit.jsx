@@ -26,7 +26,6 @@ import PageHeader from '../../components/common/PageHeader';
 import SectionCard from '../../components/common/SectionCard';
 import ChecklistGroup from '../../components/mantenimientos/ChecklistGroup';
 import SignaturePad from '../../components/mantenimientos/SignaturePad';
-import ConfirmDialog from '../../components/common/ConfirmDialog';
 import CatalogoCheckboxList from '../../components/mantenimientos/CatalogoCheckboxList';
 import EvidenciaUploader from '../../components/mantenimientos/EvidenciaUploader';
 import FileActionButtons from '../../components/common/FileActionButtons';
@@ -67,6 +66,7 @@ export default function MantenimientoEdit() {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCompletar, setConfirmCompletar] = useState(false);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -356,7 +356,7 @@ export default function MantenimientoEdit() {
     }
   };
 
-  const handleCompletar = () => {
+  const handleCompletar = async () => {
     const errores = validarParaCompletar();
     if (errores.length > 0) {
       showSnack(errores[0], 'error');
@@ -364,15 +364,37 @@ export default function MantenimientoEdit() {
       return;
     }
     setApiError('');
-    setConfirmCompletar(true);
+    setCompleting(true);
+    try {
+      // Guardamos cambios y generamos un PDF preview (borrador con marca de agua)
+      // para que el usuario vea cómo quedará el documento antes de cerrar.
+      await handleSubmit();
+      const mant = await mantenimientosService.generarPDF(id);
+      const url = mant.documento_pdf_url || '';
+      setPdfUrl(url);
+      // Cache-buster para que el iframe siempre muestre la última versión.
+      setPreviewPdfUrl(url ? `${url}?t=${Date.now()}` : '');
+      setConfirmCompletar(true);
+    } catch (e) {
+      const data = e.responseData;
+      if (data?.errores) {
+        showSnack(data.errores[0], 'error');
+        setApiError(data.errores.join(' · '));
+      } else if (!handleApiFieldErrors(e)) {
+        showSnack(e.message, 'error');
+        setApiError(e.message);
+      }
+    } finally {
+      setCompleting(false);
+    }
   };
 
   const confirmarCompletar = async () => {
     setCompleting(true);
     try {
-      await handleSubmit();
       await mantenimientosService.cerrar(id);
       setConfirmCompletar(false);
+      setPreviewPdfUrl('');
       showSnack('Mantenimiento completado correctamente.');
       navigate(`/mantenimientos/${id}`);
     } catch (e) {
@@ -484,7 +506,29 @@ export default function MantenimientoEdit() {
         </Grid>
       </SectionCard>
 
-      <SectionCard title="Actividades y materiales">
+      {!isCreate && (
+      <SectionCard
+        title="Checklist técnico"
+        subtitle="Guía de revisión del técnico (uso interno). Queda como evidencia y aparece en el anexo técnico del PDF; no se muestra al usuario en la sección de conformidad."
+      >
+        {checklistItems.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">Cargando checklist...</Typography>
+        ) : (
+          <ChecklistGroup
+            items={checklistItems}
+            values={checklistValues}
+            onChange={(itemId, val) =>
+              setChecklistValues((p) => ({ ...p, [itemId]: val }))
+            }
+          />
+        )}
+      </SectionCard>
+      )}
+
+      <SectionCard
+        title="Actividades y materiales"
+        subtitle="Resumen visible para el colaborador. Esto aparece en el documento de conformidad que firma el usuario."
+      >
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
             <CatalogoCheckboxList
@@ -560,22 +604,6 @@ export default function MantenimientoEdit() {
       </SectionCard>
 
       {!isCreate && (
-      <SectionCard title="Checklist técnico">
-        {checklistItems.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">Cargando checklist...</Typography>
-        ) : (
-          <ChecklistGroup
-            items={checklistItems}
-            values={checklistValues}
-            onChange={(itemId, val) =>
-              setChecklistValues((p) => ({ ...p, [itemId]: val }))
-            }
-          />
-        )}
-      </SectionCard>
-      )}
-
-      {!isCreate && (
       <SectionCard title="Evidencias fotográficas">
         <EvidenciaUploader
           evidencias={evidencias}
@@ -587,6 +615,29 @@ export default function MantenimientoEdit() {
 
       {!isCreate && (
       <SectionCard title="Firmas">
+        <Box
+          sx={{
+            border: '1px solid',
+            borderColor: 'primary.main',
+            borderRadius: 1,
+            bgcolor: 'primary.50',
+            p: 2,
+            mb: 3,
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+            Declaración de conformidad del usuario
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Yo, <strong>{firmaDefaults.usuario.nombre || '_______________________________'}</strong>, declaro que:
+          </Typography>
+          <Typography variant="body2" component="div" sx={{ lineHeight: 1.7 }}>
+            • He verificado el estado del equipo/área tras la intervención.<br />
+            • La información brindada por el técnico es clara y suficiente.<br />
+            • Acepto las actividades realizadas y su resultado conforme a lo descrito.<br />
+            • Cualquier observación adicional fue registrada en este documento.
+          </Typography>
+        </Box>
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 6 }}>
             <SignaturePad
@@ -691,16 +742,48 @@ export default function MantenimientoEdit() {
         </Stack>
       </SectionCard>
 
-      <ConfirmDialog
+      <Dialog
         open={confirmCompletar}
         onClose={() => !completing && setConfirmCompletar(false)}
-        onConfirm={confirmarCompletar}
-        title="Completar mantenimiento"
-        message="¿Estás seguro que quieres completar el mantenimiento? Una vez completado no podrá modificarse."
-        confirmLabel="Completar"
-        confirmColor="success"
-        loading={completing}
-      />
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>Vista previa antes de completar</DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
+          <Box sx={{ px: 3, py: 2 }}>
+            <DialogContentText>
+              Revisa cómo lucirá el documento. Una vez completado el mantenimiento no podrá modificarse.
+              El PDF mostrado es el borrador (con marca de agua); al confirmar se generará la versión final sin marca de agua.
+            </DialogContentText>
+          </Box>
+          {previewPdfUrl ? (
+            <Box
+              component="iframe"
+              src={previewPdfUrl}
+              title="Vista previa del PDF"
+              sx={{ width: '100%', height: '70vh', border: 'none', display: 'block' }}
+            />
+          ) : (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 240 }}>
+              <CircularProgress size={28} />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setConfirmCompletar(false)} disabled={completing}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={confirmarCompletar}
+            color="success"
+            variant="contained"
+            disabled={completing || !previewPdfUrl}
+            startIcon={completing ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />}
+          >
+            Completar mantenimiento
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={confirmDelete} onClose={() => !deleting && setConfirmDelete(false)}>
         <DialogTitle>Eliminar borrador</DialogTitle>
