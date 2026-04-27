@@ -30,7 +30,7 @@ import StatusChip from '../../components/common/StatusChip';
 import { mantenimientosService } from '../../services/mantenimientos';
 import { tecnicosService } from '../../services/tecnicos';
 import { formatDate } from '../../utils/formatters';
-import { ESTATUS_MANTENIMIENTO_CHOICES } from '../../utils/constants';
+import { ESTATUS_MANTENIMIENTO_CHOICES, TIPO_MANTENIMIENTO_CHOICES } from '../../utils/constants';
 
 export default function MantenimientosList() {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ export default function MantenimientosList() {
   const [error, setError] = useState('');
   const [generatingId, setGeneratingId] = useState(null);
   const [exportLoading, setExportLoading] = useState(false);
-  const [filters, setFilters] = useState({ estatus: '', tecnico: '', desde: '', hasta: '' });
+  const [filters, setFilters] = useState({ estatus: '', tecnico: '', tipo_mantenimiento: '', desde: '', hasta: '' });
 
   useEffect(() => {
     tecnicosService.list({ activo: 'true' }).then((d) => setTecnicos(d.results ?? d));
@@ -51,6 +51,7 @@ export default function MantenimientosList() {
     const params = {};
     if (filters.estatus) params.estatus = filters.estatus;
     if (filters.tecnico) params.tecnico = filters.tecnico;
+    if (filters.tipo_mantenimiento) params.tipo_mantenimiento = filters.tipo_mantenimiento;
     if (filters.desde)   params.desde   = filters.desde;
     if (filters.hasta)   params.hasta   = filters.hasta;
     mantenimientosService
@@ -58,7 +59,7 @@ export default function MantenimientosList() {
       .then((data) => setItems(data.results ?? data))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [filters.estatus, filters.tecnico, filters.desde, filters.hasta]);
+  }, [filters.estatus, filters.tecnico, filters.tipo_mantenimiento, filters.desde, filters.hasta]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -71,6 +72,7 @@ export default function MantenimientosList() {
       const params = {};
       if (filters.estatus) params.estatus = filters.estatus;
       if (filters.tecnico) params.tecnico = filters.tecnico;
+      if (filters.tipo_mantenimiento) params.tipo_mantenimiento = filters.tipo_mantenimiento;
       if (filters.desde)   params.desde   = filters.desde;
       if (filters.hasta)   params.hasta   = filters.hasta;
       await mantenimientosService.exportarCSV(params);
@@ -146,6 +148,19 @@ export default function MantenimientosList() {
               <MenuItem key={t.id} value={t.id}>
                 {t.full_name || `${t.first_name} ${t.last_name}`}
               </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Tipo"
+            select
+            value={filters.tipo_mantenimiento}
+            onChange={(e) => setFilters((p) => ({ ...p, tipo_mantenimiento: e.target.value }))}
+            size="small"
+            sx={{ minWidth: 180 }}
+          >
+            <MenuItem value="">Todos</MenuItem>
+            {TIPO_MANTENIMIENTO_CHOICES.map(({ value, label }) => (
+              <MenuItem key={value} value={value}>{label}</MenuItem>
             ))}
           </TextField>
           <TextField

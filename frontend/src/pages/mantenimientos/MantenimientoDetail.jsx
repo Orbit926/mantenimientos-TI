@@ -268,7 +268,9 @@ export default function MantenimientoDetail() {
               </Grid>
               {mant.riesgo_presentado && (
                 <Grid size={{ xs: 12, md: 6 }}>
-                  <Chip label="Riesgo presentado" color="warning" size="small" sx={{ mb: 1 }} />
+                  <Box sx={{ mb: 1 }}>
+                    <Chip label="Riesgo presentado" color="warning" size="small" />
+                  </Box>
                   <Typography variant="caption" color="text.secondary" fontWeight={600} display="block">DESCRIPCIÓN</Typography>
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
                     {mant.descripcion_riesgo || '—'}

@@ -52,6 +52,9 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
         estatus = self.request.query_params.get('estatus')
         if estatus:
             qs = qs.filter(estatus=estatus)
+        tipo_mantenimiento = self.request.query_params.get('tipo_mantenimiento')
+        if tipo_mantenimiento:
+            qs = qs.filter(tipo_mantenimiento=tipo_mantenimiento)
         # Filtros de rango opcional sobre fecha_ejecucion (YYYY-MM-DD).
         desde = self.request.query_params.get('desde')
         if desde:
