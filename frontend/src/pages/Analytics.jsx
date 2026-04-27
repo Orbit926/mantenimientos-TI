@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Box,
+  Button,
+  ButtonGroup,
   Card,
   CardContent,
   CircularProgress,
@@ -9,14 +11,17 @@ import {
   Grid,
   LinearProgress,
   Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
 } from '@mui/material';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BuildIcon from '@mui/icons-material/Build';
@@ -84,20 +89,54 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+// Helpers para presets de fechas
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const daysAgoISO = (days) => {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+};
+const startOfYearISO = () => `${new Date().getFullYear()}-01-01`;
+
+const PRESETS = [
+  { key: '30',  label: '30 días',  desde: () => daysAgoISO(30),  hasta: todayISO },
+  { key: '90',  label: '90 días',  desde: () => daysAgoISO(90),  hasta: todayISO },
+  { key: '365', label: '12 meses', desde: () => daysAgoISO(365), hasta: todayISO },
+  { key: 'ytd', label: 'Este año', desde: startOfYearISO,        hasta: todayISO },
+];
+
 export default function Analytics() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Por defecto últimos 12 meses (igual que el comportamiento previo).
+  const [desde, setDesde] = useState(daysAgoISO(365));
+  const [hasta, setHasta] = useState(todayISO());
 
-  useEffect(() => {
+  const fetchData = useCallback((d, h) => {
+    setLoading(true);
+    setError('');
     analyticsService
-      .get()
+      .get({ desde: d, hasta: h })
       .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
+  // Carga inicial.
+  useEffect(() => { fetchData(desde, hasta); }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const aplicar = () => fetchData(desde, hasta);
+  const aplicarPreset = (preset) => {
+    const d = preset.desde();
+    const h = preset.hasta();
+    setDesde(d);
+    setHasta(h);
+    fetchData(d, h);
+  };
+  const resetear = () => aplicarPreset(PRESETS[2]);  // 12 meses
+
+  if (loading && !data) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
         <CircularProgress />
@@ -105,7 +144,7 @@ export default function Analytics() {
     );
   }
 
-  if (error) return <Alert severity="error">{error}</Alert>;
+  if (error && !data) return <Alert severity="error">{error}</Alert>;
 
   const { kpis, por_mes, por_estado_equipo, por_tipo_equipo, por_tecnico, top_equipos } = data;
 
@@ -120,6 +159,76 @@ export default function Analytics() {
         title="Analytics"
         subtitle="Métricas y estadísticas de mantenimientos"
       />
+
+      {/* ── Filtros de fecha ─────────────────────────────── */}
+      <Card sx={{ borderRadius: 3, boxShadow: 1, mb: 3 }}>
+        <CardContent sx={{ py: 2 }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={2}
+            alignItems={{ xs: 'stretch', md: 'center' }}
+            justifyContent="space-between"
+          >
+            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
+              <TextField
+                label="Desde"
+                type="date"
+                size="small"
+                value={desde}
+                onChange={(e) => setDesde(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 160 }}
+              />
+              <TextField
+                label="Hasta"
+                type="date"
+                size="small"
+                value={hasta}
+                onChange={(e) => setHasta(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 160 }}
+              />
+              <Button
+                variant="contained"
+                onClick={aplicar}
+                disabled={loading || !desde || !hasta}
+                startIcon={loading ? <CircularProgress size={14} color="inherit" /> : null}
+              >
+                Aplicar
+              </Button>
+              <Button
+                variant="text"
+                onClick={resetear}
+                disabled={loading}
+                startIcon={<RestartAltIcon />}
+              >
+                Reiniciar
+              </Button>
+            </Stack>
+            <ButtonGroup size="small" variant="outlined">
+              {PRESETS.map((p) => (
+                <Button
+                  key={p.key}
+                  onClick={() => aplicarPreset(p)}
+                  disabled={loading}
+                  variant={desde === p.desde() && hasta === p.hasta() ? 'contained' : 'outlined'}
+                >
+                  {p.label}
+                </Button>
+              ))}
+            </ButtonGroup>
+          </Stack>
+          {data?.rango && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
+              Mostrando datos del <strong>{data.rango.desde}</strong> al{' '}
+              <strong>{data.rango.hasta}</strong>. Los KPIs de equipos (al día,
+              vencidos, etc.) reflejan el estado actual y no dependen del rango.
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {/* ── KPI Cards ────────────────────────────────────── */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -186,32 +295,51 @@ export default function Analytics() {
 
         <Grid size={{ xs: 12, lg: 4 }}>
           <Card sx={{ borderRadius: 3, boxShadow: 2, height: '100%' }}>
-            <CardContent>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Typography variant="subtitle1" fontWeight={700} mb={1}>
                 Por tipo de equipo
               </Typography>
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={por_tipo_equipo}
-                    dataKey="value"
-                    nameKey="label"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    label={({ label, percent }) =>
-                      `${label} ${(percent * 100).toFixed(0)}%`
-                    }
-                    labelLine={false}
-                    fontSize={11}
-                  >
-                    {por_tipo_equipo.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v, n) => [v, n]} />
-                </PieChart>
-              </ResponsiveContainer>
+              {por_tipo_equipo.length === 0 ? (
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Typography color="text.secondary">Sin datos en el rango.</Typography>
+                </Box>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={por_tipo_equipo}
+                      dataKey="value"
+                      nameKey="label"
+                      cx="50%"
+                      cy="45%"
+                      innerRadius={45}
+                      outerRadius={75}
+                      paddingAngle={2}
+                      label={({ percent }) =>
+                        percent > 0.08 ? `${(percent * 100).toFixed(0)}%` : ''
+                      }
+                      labelLine={false}
+                    >
+                      {por_tipo_equipo.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [`${value} mant.`, name]}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      iconType="circle"
+                      wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                      formatter={(value, entry) => {
+                        const total = por_tipo_equipo.reduce((s, x) => s + x.value, 0);
+                        const pct = total ? Math.round((entry.payload.value / total) * 100) : 0;
+                        return `${value} (${entry.payload.value} · ${pct}%)`;
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </Grid>

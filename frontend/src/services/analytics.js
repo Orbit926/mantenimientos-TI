@@ -1,5 +1,5 @@
 import client from '../api/client';
 
 export const analyticsService = {
-  get: () => client.get('/analytics/').then((r) => r.data),
+  get: (params = {}) => client.get('/analytics/', { params }).then((r) => r.data),
 };

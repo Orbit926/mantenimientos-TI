@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from django.contrib.auth import get_user_model
 from django.db.models import Avg, Count, F, FloatField, Q
@@ -14,6 +14,16 @@ from mantenimientos.serializers import MantenimientoListSerializer
 
 Tecnico = get_user_model()
 _DIAS_PROXIMO = 30
+
+
+def _parse_date(value):
+    """Parsea YYYY-MM-DD; devuelve None si está vacío o es inválido."""
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except (TypeError, ValueError):
+        return None
 
 
 class DashboardResumenView(APIView):
@@ -67,10 +77,26 @@ class DashboardRealizadosView(APIView):
 class AnalyticsView(APIView):
     def get(self, request):
         hoy = date.today()
-        hace_12_meses = hoy - timedelta(days=365)
         primer_dia_mes = hoy.replace(day=1)
 
-        qs_all = Mantenimiento.objects.all()
+        # ── Filtros de rango (opcionales) ──────────────────────────
+        # `desde` / `hasta` aplican a fecha_ejecucion. Si no se proveen,
+        # por defecto usamos los últimos 12 meses (comportamiento previo).
+        desde = _parse_date(request.query_params.get('desde'))
+        hasta = _parse_date(request.query_params.get('hasta'))
+        rango_explicito = bool(desde or hasta)
+        if not desde:
+            desde = hoy - timedelta(days=365)
+        if not hasta:
+            hasta = hoy
+        # Sanity: si vienen invertidos, los intercambiamos.
+        if desde > hasta:
+            desde, hasta = hasta, desde
+
+        qs_all = Mantenimiento.objects.filter(
+            fecha_ejecucion__gte=desde,
+            fecha_ejecucion__lte=hasta,
+        )
         qs_completados = qs_all.filter(estatus='COMPLETADO')
 
         # ── KPIs globales ──────────────────────────────────────────
@@ -113,10 +139,9 @@ class AnalyticsView(APIView):
             for r in por_estado
         ]
 
-        # ── Mantenimientos por mes (últimos 12 meses) ──────────────
+        # ── Mantenimientos por mes (en el rango filtrado) ──────────
         por_mes_qs = (
             qs_all
-            .filter(fecha_ejecucion__gte=hace_12_meses)
             .annotate(mes=TruncMonth('fecha_ejecucion'))
             .values('mes', 'estatus')
             .annotate(total=Count('id'))
@@ -213,4 +238,9 @@ class AnalyticsView(APIView):
             'por_tipo_equipo': por_tipo_fmt,
             'por_tecnico': por_tecnico_fmt,
             'top_equipos': top_equipos,
+            'rango': {
+                'desde': desde.isoformat(),
+                'hasta': hasta.isoformat(),
+                'explicito': rango_explicito,
+            },
         })
