@@ -23,6 +23,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import EditIcon from '@mui/icons-material/Edit';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
@@ -38,7 +39,8 @@ export default function MantenimientosList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [generatingId, setGeneratingId] = useState(null);
-  const [filters, setFilters] = useState({ estatus: '', tecnico: '' });
+  const [exportLoading, setExportLoading] = useState(false);
+  const [filters, setFilters] = useState({ estatus: '', tecnico: '', desde: '', hasta: '' });
 
   useEffect(() => {
     tecnicosService.list({ activo: 'true' }).then((d) => setTecnicos(d.results ?? d));
@@ -49,16 +51,35 @@ export default function MantenimientosList() {
     const params = {};
     if (filters.estatus) params.estatus = filters.estatus;
     if (filters.tecnico) params.tecnico = filters.tecnico;
+    if (filters.desde)   params.desde   = filters.desde;
+    if (filters.hasta)   params.hasta   = filters.hasta;
     mantenimientosService
       .list(params)
       .then((data) => setItems(data.results ?? data))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [filters.estatus, filters.tecnico]);
+  }, [filters.estatus, filters.tecnico, filters.desde, filters.hasta]);
 
   useEffect(() => { load(); }, [load]);
 
   const filtered = items;
+
+  const handleExport = async () => {
+    setExportLoading(true);
+    setError('');
+    try {
+      const params = {};
+      if (filters.estatus) params.estatus = filters.estatus;
+      if (filters.tecnico) params.tecnico = filters.tecnico;
+      if (filters.desde)   params.desde   = filters.desde;
+      if (filters.hasta)   params.hasta   = filters.hasta;
+      await mantenimientosService.exportarCSV(params);
+    } catch (err) {
+      setError(err.message || 'No se pudo exportar el CSV.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   const handleGenerarPDF = async (id, e) => {
     e.stopPropagation();
@@ -79,16 +100,26 @@ export default function MantenimientosList() {
         title="Mantenimientos"
         subtitle="Registro de mantenimientos de equipos"
         actions={
-          <Button variant="contained" onClick={() => navigate('/mantenimientos/nuevo')}>
-            + Nuevo mantenimiento
-          </Button>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Button
+              variant="outlined"
+              startIcon={exportLoading ? <CircularProgress size={14} /> : <DownloadIcon />}
+              onClick={handleExport}
+              disabled={exportLoading}
+            >
+              Exportar CSV
+            </Button>
+            <Button variant="contained" onClick={() => navigate('/mantenimientos/nuevo')}>
+              + Nuevo mantenimiento
+            </Button>
+          </Stack>
         }
       />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap" useFlexGap>
           <TextField
             label="Estatus"
             select
@@ -117,6 +148,24 @@ export default function MantenimientosList() {
               </MenuItem>
             ))}
           </TextField>
+          <TextField
+            label="Desde"
+            type="date"
+            size="small"
+            value={filters.desde}
+            onChange={(e) => setFilters((p) => ({ ...p, desde: e.target.value }))}
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ minWidth: 170 }}
+          />
+          <TextField
+            label="Hasta"
+            type="date"
+            size="small"
+            value={filters.hasta}
+            onChange={(e) => setFilters((p) => ({ ...p, hasta: e.target.value }))}
+            slotProps={{ inputLabel: { shrink: true } }}
+            sx={{ minWidth: 170 }}
+          />
         </Stack>
       </Paper>
 

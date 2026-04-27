@@ -39,4 +39,20 @@ export const mantenimientosService = {
     }).then(r => r.data),
   deleteEvidencia: (mantenimientoId, evidenciaId) =>
     client.delete(`/mantenimientos/${mantenimientoId}/evidencias/${evidenciaId}/`).then(r => r.data),
+
+  exportarCSV: async (params = {}) => {
+    const response = await client.get('/mantenimientos/exportar-csv/', {
+      params,
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'mantenimientos.csv');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };

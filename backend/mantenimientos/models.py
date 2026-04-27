@@ -59,6 +59,12 @@ class Mantenimiento(models.Model):
         ('PENDIENTE_FIRMA_USUARIO', 'Pendiente firma usuario'),
         ('COMPLETADO', 'Completado'),
     ]
+    ESTADO_MANTENIMIENTO_CHOICES = [
+        ('PREVENTIVO', 'Preventivo'),
+        ('CORRECTIVO', 'Correctivo'),
+        ('DIAGNOSTICO', 'Diagnóstico'),
+        ('OTRO', 'Otro'),
+    ]
 
     equipo = models.ForeignKey(Equipo, on_delete=models.PROTECT, related_name='mantenimientos')
     departamento_area = models.CharField(max_length=200, blank=True, default='')

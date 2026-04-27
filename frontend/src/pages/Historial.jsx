@@ -147,19 +147,19 @@ export default function Historial() {
               slotProps={{ inputLabel: { shrink: true } }}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 1 }}>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 'auto' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <Button
                 variant="contained"
                 size="small"
                 startIcon={<SearchIcon />}
                 onClick={applyFilters}
-                fullWidth
+                sx={{ whiteSpace: 'nowrap' }}
               >
                 Buscar
               </Button>
               <Tooltip title="Limpiar filtros">
-                <IconButton size="small" onClick={resetFilters}>
+                <IconButton size="small" onClick={resetFilters} color="default">
                   <FilterListOffIcon fontSize="small" />
                 </IconButton>
               </Tooltip>

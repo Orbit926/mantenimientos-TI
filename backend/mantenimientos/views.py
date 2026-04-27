@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
+from .csv_io import export_mantenimientos_csv
 from .models import ActividadCatalogo, ChecklistItem, EvidenciaMantenimiento, Mantenimiento, MaterialCatalogo
 from .serializers import (
     ActividadCatalogoSerializer,
@@ -51,6 +52,13 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
         estatus = self.request.query_params.get('estatus')
         if estatus:
             qs = qs.filter(estatus=estatus)
+        # Filtros de rango opcional sobre fecha_ejecucion (YYYY-MM-DD).
+        desde = self.request.query_params.get('desde')
+        if desde:
+            qs = qs.filter(fecha_ejecucion__gte=desde)
+        hasta = self.request.query_params.get('hasta')
+        if hasta:
+            qs = qs.filter(fecha_ejecucion__lte=hasta)
         return qs
 
     def get_serializer_class(self):
@@ -81,6 +89,16 @@ class MantenimientoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return super().destroy(request, *args, **kwargs)
+
+    @action(detail=False, methods=['get'], url_path='exportar-csv')
+    def exportar_csv(self, request):
+        """Exporta a CSV los mantenimientos del queryset actual.
+
+        Respeta los filtros `estatus`, `tecnico`, `equipo`, `desde`, `hasta`
+        del query string (mismos que `list`).
+        """
+        qs = self.filter_queryset(self.get_queryset()).order_by('-fecha_ejecucion', '-id')
+        return export_mantenimientos_csv(qs)
 
     @action(detail=True, methods=['post'])
     def cerrar(self, request, pk=None):
