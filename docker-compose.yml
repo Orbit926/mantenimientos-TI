@@ -42,7 +42,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8081:80"
     volumes:
       - static_volume:/usr/share/nginx/static:ro
       - media_volume:/usr/share/nginx/media:ro
