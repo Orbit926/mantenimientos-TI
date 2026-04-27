@@ -3,8 +3,10 @@ from datetime import date, timedelta
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
+from .csv_io import CSVImportError, export_equipos_csv, import_equipos_csv
 from .models import Equipo
 from .serializers import EquipoBajaSerializer, EquipoDetailSerializer, EquipoListSerializer
 
@@ -86,6 +88,57 @@ class EquipoViewSet(viewsets.ModelViewSet):
         equipo.save()
         return Response(
             EquipoDetailSerializer(equipo, context={'request': request}).data
+        )
+
+    @action(detail=False, methods=['get'], url_path='exportar-csv')
+    def exportar_csv(self, request):
+        """Descarga los equipos visibles (respeta filtros) en formato CSV."""
+        return export_equipos_csv(self.filter_queryset(self.get_queryset()))
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='importar-csv',
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def importar_csv(self, request):
+        """Importa equipos desde un CSV (multipart/form-data, campo 'archivo').
+
+        Si CUALQUIER fila tiene errores, no se crea ningún equipo y se
+        responde con la lista de errores por fila.
+        """
+        archivo = request.FILES.get('archivo') or request.FILES.get('file')
+        if not archivo:
+            return Response(
+                {'detail': 'No se envió ningún archivo. Usa el campo "archivo".'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not (archivo.name or '').lower().endswith('.csv'):
+            return Response(
+                {'detail': 'El archivo debe tener extensión .csv'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            resultado = import_equipos_csv(archivo, sync_estado=self._sync_estado)
+        except CSVImportError as exc:
+            return Response({'detail': exc.mensaje}, status=status.HTTP_400_BAD_REQUEST)
+
+        if resultado['fallidos']:
+            return Response(
+                {
+                    'detail': (
+                        f'Se encontraron {resultado["fallidos"]} fila(s) con errores. '
+                        f'No se importó ningún equipo.'
+                    ),
+                    **resultado,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {'detail': f'Importación exitosa: {resultado["creados"]} equipo(s) creado(s).', **resultado},
+            status=status.HTTP_201_CREATED,
         )
 
     @action(detail=True, methods=['get'], url_path='mantenimientos')

@@ -7,4 +7,39 @@ export const equiposService = {
   update: (id, data) => client.patch(`/equipos/${id}/`, data).then(r => r.data),
   baja: (id, motivo_baja) => client.post(`/equipos/${id}/baja/`, { motivo_baja }).then(r => r.data),
   mantenimientos: (id) => client.get(`/equipos/${id}/mantenimientos/`).then(r => r.data),
+
+  exportarCSV: async (params = {}) => {
+    const response = await client.get('/equipos/exportar-csv/', {
+      params,
+      responseType: 'blob',
+    });
+    // Disparamos la descarga programáticamente.
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'equipos.csv');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
+  importarCSV: async (file) => {
+    const fd = new FormData();
+    fd.append('archivo', file);
+    // Devolvemos response.data en éxito y throw con response.data en error
+    // para que el frontend pueda mostrar el detalle por fila.
+    try {
+      const r = await client.post('/equipos/importar-csv/', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return r.data;
+    } catch (err) {
+      // Re-lanzamos preservando el body de la respuesta del backend.
+      const wrapped = new Error(err.response?.data?.detail || err.message);
+      wrapped.responseData = err.response?.data;
+      throw wrapped;
+    }
+  },
 };

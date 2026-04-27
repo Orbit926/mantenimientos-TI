@@ -1,0 +1,21 @@
+codigo_interno,marca,modelo,numero_serie,tipo_equipo,ubicacion,colaborador_nombre,colaborador_correo,colaborador_puesto,fecha_proximo_mantenimiento
+58213,Dell,Latitude 5420,SN58213,LAPTOP,Oficina Central,Juan Pérez,juan.perez@chivasdecorazon.com.mx,Analista,2026-08-15
+94725,HP,EliteDesk,SN94725,DESKTOP,Almacén,,,
+38492,Lenovo,ThinkPad X1,SN38492,LAPTOP,Sala de juntas,Ana López,ana.lopez@chivasdecorazon.com.mx,Gerente,2026-09-01
+12058,Apple,MacBook Air,SN12058,LAPTOP,Oficina Central,Carlos Ruiz,carlos.ruiz@chivasdecorazon.com.mx,Desarrollador,2026-08-20
+77341,Asus,VivoBook,SN77341,LAPTOP,Oficina TI,Luis Gómez,luis.gomez@chivasdecorazon.com.mx,Soporte,2026-08-25
+66290,HP,LaserJet Pro,SN66290,IMPRESORA,Recepción,,,
+91834,Dell,OptiPlex 7090,SN91834,DESKTOP,Oficina Central,María Torres,maria.torres@chivasdecorazon.com.mx,Contador,2026-09-10
+45012,Acer,Aspire TC,SN45012,DESKTOP,Almacén,,,
+30177,Lenovo,ThinkCentre,SN30177,DESKTOP,Oficina TI,Pedro Sánchez,pedro.sanchez@chivasdecorazon.com.mx,Técnico,2026-08-30
+88901,HP,ProBook 450,SN88901,LAPTOP,Oficina Central,Sofía Hernández,sofia.hernandez@chivasdecorazon.com.mx,RH,2026-09-05
+21456,Dell,PowerEdge T40,SN21456,SERVIDOR,Data Center,,,
+77823,LG,UltraWide,SN77823,MONITOR,Oficina TI,,,
+65902,Asus,ROG Strix,SN65902,LAPTOP,Oficina Central,Diego Ramírez,diego.ramirez@chivasdecorazon.com.mx,Marketing,2026-08-28
+54098,Apple,iMac 24,SN54098,DESKTOP,Dirección,Laura Méndez,laura.mendez@chivasdecorazon.com.mx,Directora,2026-09-12
+33321,Canon,Pixma G3160,SN33321,IMPRESORA,Recepción,,,
+87564,Dell,Latitude 5510,SN87564,LAPTOP,Oficina Central,Andrés Castro,andres.castro@chivasdecorazon.com.mx,Finanzas,2026-08-18
+10234,Lenovo,IdeaPad 3,SN10234,LAPTOP,Oficina TI,,,
+99012,HP,EliteBook 840,SN99012,LAPTOP,Sala de juntas,Paola Jiménez,paola.jimenez@chivasdecorazon.com.mx,Legal,2026-09-03
+44789,Acer,Veriton,SN44789,DESKTOP,Almacén,,,
+56873,Dell,Inspiron 15,SN56873,LAPTOP,Oficina Central,Raúl Vargas,raul.vargas@chivasdecorazon.com.mx,Operaciones,2026-08-22

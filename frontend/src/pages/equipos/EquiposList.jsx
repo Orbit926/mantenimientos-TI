@@ -25,10 +25,13 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import BuildIcon from '@mui/icons-material/Build';
 import BlockIcon from '@mui/icons-material/Block';
 import SearchIcon from '@mui/icons-material/Search';
+import DownloadIcon from '@mui/icons-material/Download';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import StatusChip from '../../components/common/StatusChip';
 import BajaDialog from '../../components/equipos/BajaDialog';
+import ImportarCSVDialog from '../../components/equipos/ImportarCSVDialog';
 import { equiposService } from '../../services/equipos';
 import { useIniciarMantenimiento } from '../../hooks/useIniciarMantenimiento';
 import { formatDate } from '../../utils/formatters';
@@ -53,6 +56,8 @@ export default function EquiposList() {
   const [bajaTarget, setBajaTarget] = useState(null);
   const [bajaLoading, setBajaLoading] = useState(false);
   const [bajaError, setBajaError] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const { iniciar, registrandoId } = useIniciarMantenimiento();
 
   const load = useCallback(() => {
@@ -84,6 +89,25 @@ export default function EquiposList() {
       )
     : equipos;
 
+  const handleExport = async () => {
+    setExportLoading(true);
+    setError('');
+    try {
+      // Respetamos el filtro actual al exportar (mismo queryset que la lista).
+      const params = {};
+      if (filtro === 'activos')     params.estado = 'ACTIVO';
+      if (filtro === 'disponibles') params.estado = 'DISPONIBLE';
+      if (filtro === 'inactivos')   params.estado = 'BAJA';
+      if (filtro === 'proximos')    params.proximo = 'true';
+      if (filtro === 'vencidos')    params.vencido = 'true';
+      await equiposService.exportarCSV(params);
+    } catch (e) {
+      setError(e.message || 'No se pudo exportar el CSV.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   const handleBaja = async (motivo) => {
     setBajaLoading(true);
     setBajaError('');
@@ -104,9 +128,26 @@ export default function EquiposList() {
         title="Equipos"
         subtitle="Inventario de equipos de cómputo"
         actions={
-          <Button variant="contained" onClick={() => navigate('/equipos/nuevo')}>
-            + Nuevo equipo
-          </Button>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={handleExport}
+              disabled={exportLoading}
+            >
+              Exportar CSV
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<UploadFileIcon />}
+              onClick={() => setImportOpen(true)}
+            >
+              Importar CSV
+            </Button>
+            <Button variant="contained" onClick={() => navigate('/equipos/nuevo')}>
+              + Nuevo equipo
+            </Button>
+          </Stack>
         }
       />
 
@@ -235,6 +276,13 @@ export default function EquiposList() {
         onConfirm={handleBaja}
         loading={bajaLoading}
         error={bajaError}
+      />
+
+      <ImportarCSVDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImport={equiposService.importarCSV}
+        onSuccess={() => load()}
       />
     </Box>
   );
