@@ -13,6 +13,11 @@ class Equipo(models.Model):
         ('DESKTOP', 'Desktop'),
         ('IMPRESORA', 'Impresora'),
         ('SERVIDOR', 'Servidor'),
+        ('SWITCH', 'Switch'),
+        ('ROUTER', 'Router'),
+        ('ACCESS_POINT', 'Access Point'),
+        ('UPS', 'UPS'),
+        
         ('MONITOR', 'Monitor'),
         ('OTRO', 'Otro'),
     ]

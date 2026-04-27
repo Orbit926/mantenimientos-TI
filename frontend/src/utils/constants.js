@@ -3,6 +3,10 @@ export const TIPO_EQUIPO_CHOICES = [
   { value: 'DESKTOP', label: 'Desktop' },
   { value: 'IMPRESORA', label: 'Impresora' },
   { value: 'SERVIDOR', label: 'Servidor' },
+  { value: 'SWITCH', label: 'Switch' },
+  { value: 'ROUTER', label: 'Router' },
+  { value: 'ACCESS_POINT', label: 'Access Point' },
+  { value: 'UPS', label: 'UPS' },
   { value: 'MONITOR', label: 'Monitor' },
   { value: 'OTRO', label: 'Otro' },
 ];
