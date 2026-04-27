@@ -75,6 +75,7 @@
     <tr><th>Departamento / Área</th><td>{{ mantenimiento.departamento_area }}</td></tr>
     <tr><th>Responsable del Área</th><td>{{ mantenimiento.responsable_area }}</td></tr>
     <tr><th>Técnico(s) Responsable(s)</th><td>{% if mantenimiento.tecnico %}{{ mantenimiento.tecnico.get_full_name }}{% endif %}</td></tr>
+    <tr><th>Tipo de Mantenimiento</th><td>{{ mantenimiento.tipo_mantenimiento }}</td></tr>
     <tr><th>Fecha de Ejecución</th><td>{{ mantenimiento.fecha_ejecucion }}</td></tr>
     <tr><th>Hora de Inicio</th><td>{{ mantenimiento.hora_inicio }}</td></tr>
     <tr><th>Hora de Término</th><td>{{ mantenimiento.hora_fin|default:"—" }}</td></tr>

@@ -218,6 +218,14 @@ export default function MantenimientoDetail() {
         {/* Datos generales */}
         <Grid size={{ xs: 12, md: 6 }}>
           <SectionCard title="Datos generales">
+            <Box sx={{ display: 'flex', py: 0.75, alignItems: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 220, fontWeight: 500 }}>
+                Tipo de mantenimiento
+              </Typography>
+              {mant.tipo_mantenimiento
+                ? <StatusChip type="tipo_mantenimiento" value={mant.tipo_mantenimiento} />
+                : <Typography variant="body2">—</Typography>}
+            </Box>
             <InfoRow label="Departamento / Área" value={mant.departamento_area} />
             <InfoRow label="Responsable del área" value={mant.responsable_area} />
             <InfoRow label="Técnico responsable" value={mant.tecnico_nombre} />

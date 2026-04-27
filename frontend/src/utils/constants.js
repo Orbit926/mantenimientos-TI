@@ -13,6 +13,17 @@ export const ESTADO_EQUIPO_CHOICES = [
   { value: 'NO_OPERATIVO', label: 'No operativo' },
 ];
 
+export const TIPO_MANTENIMIENTO_CHOICES = [
+  { value: 'PREVENTIVO', label: 'Preventivo' },
+  { value: 'CORRECTIVO', label: 'Correctivo' },
+  { value: 'DIAGNOSTICO', label: 'Diagnóstico' },
+  { value: 'OTRO', label: 'Otro' },
+];
+
+export const TIPO_MANTENIMIENTO_MAP = Object.fromEntries(
+  TIPO_MANTENIMIENTO_CHOICES.map(({ value, label }) => [value, label])
+);
+
 export const ESTATUS_MANTENIMIENTO_CHOICES = [
   { value: 'BORRADOR', label: 'Borrador' },
   { value: 'PENDIENTE_FIRMA_TECNICO', label: 'Pendiente firma técnico' },

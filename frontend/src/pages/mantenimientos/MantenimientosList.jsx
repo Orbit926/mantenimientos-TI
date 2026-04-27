@@ -176,6 +176,7 @@ export default function MantenimientosList() {
               <TableCell>#</TableCell>
               <TableCell>Equipo</TableCell>
               <TableCell>Técnico</TableCell>
+              <TableCell>Tipo</TableCell>
               <TableCell>Fecha</TableCell>
               <TableCell>Estado equipo</TableCell>
               <TableCell>Estatus</TableCell>
@@ -186,14 +187,14 @@ export default function MantenimientosList() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <TableCell key={j}><Skeleton /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                <TableCell colSpan={8} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                   No se encontraron mantenimientos
                 </TableCell>
               </TableRow>
@@ -206,6 +207,12 @@ export default function MantenimientosList() {
                     <Typography variant="caption" color="text.secondary">{m.equipo_descripcion}</Typography>
                   </TableCell>
                   <TableCell><Typography variant="body2">{m.tecnico_nombre}</Typography></TableCell>
+                  <TableCell>
+                    {m.tipo_mantenimiento
+                      ? <StatusChip type="tipo_mantenimiento" value={m.tipo_mantenimiento} />
+                      : <Typography variant="body2" color="text.secondary">—</Typography>
+                    }
+                  </TableCell>
                   <TableCell><Typography variant="body2">{formatDate(m.fecha_ejecucion)}</Typography></TableCell>
                   <TableCell>
                     {m.estado_equipo_post

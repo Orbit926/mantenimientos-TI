@@ -32,12 +32,12 @@ import FileActionButtons from '../../components/common/FileActionButtons';
 import { mantenimientosService } from '../../services/mantenimientos';
 import { tecnicosService } from '../../services/tecnicos';
 import { equiposService } from '../../services/equipos';
-import { ESTADO_EQUIPO_CHOICES } from '../../utils/constants';
+import { ESTADO_EQUIPO_CHOICES, TIPO_MANTENIMIENTO_CHOICES } from '../../utils/constants';
 import { todayISO } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 
 const EDITABLE = [
-  'departamento_area', 'responsable_area', 'tecnico',
+  'departamento_area', 'responsable_area', 'tecnico', 'tipo_mantenimiento',
   'fecha_ejecucion', 'hora_inicio', 'hora_fin',
   'actividades_realizadas', 'materiales_utilizados',
   'estado_equipo_post', 'observaciones_tecnico',
@@ -53,7 +53,7 @@ export default function MantenimientoEdit() {
   const { user } = useAuth();
   const isCreate = !id;
   const [form, setForm] = useState(isCreate
-    ? { equipo: equipoIdParam || '', fecha_ejecucion: todayISO(), riesgo_presentado: false }
+    ? { equipo: equipoIdParam || '', fecha_ejecucion: todayISO(), riesgo_presentado: false, tipo_mantenimiento: 'PREVENTIVO' }
     : {});
   const [estatus, setEstatus] = useState('BORRADOR');
   const [equipos, setEquipos] = useState([]);
@@ -485,6 +485,13 @@ export default function MantenimientoEdit() {
                 <MenuItem key={t.id} value={t.id}>
                   {t.full_name || `${t.first_name} ${t.last_name}`} — {t.puesto || 'Técnico'}
                 </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField label="Tipo de mantenimiento" select {...f('tipo_mantenimiento')}>
+              {TIPO_MANTENIMIENTO_CHOICES.map(({ value, label }) => (
+                <MenuItem key={value} value={value}>{label}</MenuItem>
               ))}
             </TextField>
           </Grid>

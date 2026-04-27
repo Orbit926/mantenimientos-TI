@@ -75,6 +75,11 @@ class Mantenimiento(models.Model):
         related_name='mantenimientos',
         null=True, blank=True,
     )
+    tipo_mantenimiento = models.CharField(
+        max_length=30, 
+        choices=ESTADO_MANTENIMIENTO_CHOICES, 
+        default='PREVENTIVO'
+    )
     fecha_ejecucion = models.DateField(null=True, blank=True)
     hora_inicio = models.TimeField(null=True, blank=True)
     hora_fin = models.TimeField(null=True, blank=True)

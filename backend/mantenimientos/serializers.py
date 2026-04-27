@@ -87,8 +87,8 @@ class MantenimientoListSerializer(serializers.ModelSerializer):
         model = Mantenimiento
         fields = [
             'id', 'equipo', 'equipo_codigo', 'equipo_descripcion',
-            'departamento_area', 'tecnico', 'tecnico_nombre', 'fecha_ejecucion',
-            'estatus', 'estado_equipo_post', 'created_at',
+            'departamento_area', 'tecnico', 'tecnico_nombre', 'tipo_mantenimiento',
+            'fecha_ejecucion', 'estatus', 'estado_equipo_post', 'created_at',
         ]
 
     def get_equipo_descripcion(self, obj):
