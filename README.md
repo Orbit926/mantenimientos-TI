@@ -4,22 +4,51 @@ Sistema web completo para la administración y seguimiento de mantenimientos de 
 
 ## 🚀 Stack Tecnológico
 
-### Backend
-- **Django 5.2** + Django REST Framework
-- **PostgreSQL 16** como base de datos
-- **JWT** (Simple JWT) para autenticación
-- **xhtml2pdf** para generación de PDFs
-- **Ollama** (gemma4:e4b) para chatbot IA con tool-calling y visión
-- **Docker** para containerización
+### Infraestructura / Docker
 
-### Frontend
-- **React 19** con Vite 8
-- **Material UI v9** para componentes
-- **React Router 7** para navegación
-- **Axios** para consumo de API
-- **Recharts** para gráficas y analytics
-- **react-signature-canvas** para firmas digitales
-- **react-markdown** para renderizado de respuestas del chatbot
+| Software | Versión | Rol |
+|---|---|---|
+| Docker Compose | v2 | Orquestación de servicios |
+| Python | 3.12 (slim-bookworm) | Imagen base del backend |
+| Node.js | 24 (bookworm-slim) | Build del frontend |
+| Nginx | 1.29.8 | Servidor web / reverse proxy |
+| PostgreSQL | 16.13 (bookworm) | Base de datos |
+
+### Backend (Python)
+
+| Paquete | Versión | Rol |
+|---|---|---|
+| Django | 5.2 | Framework web |
+| Django REST Framework | 3.16.0 | API REST |
+| djangorestframework-simplejwt | 5.5.0 | Autenticación JWT |
+| psycopg2-binary | 2.9.9 | Driver PostgreSQL |
+| django-cors-headers | 4.7.0 | CORS |
+| xhtml2pdf | 0.2.17 | Generación de PDFs |
+| Pillow | 11.2.1 | Procesamiento de imágenes (firmas, evidencias) |
+| Gunicorn | 23.0.0 | Servidor WSGI de producción |
+
+### Frontend (Node)
+
+| Paquete | Versión | Rol |
+|---|---|---|
+| React | ^19.2.4 | UI framework |
+| React DOM | ^19.2.4 | Renderizado DOM |
+| Vite | ^8.0.4 | Bundler / dev server |
+| @mui/material | ^9.0.0 | Componentes UI |
+| @mui/icons-material | ^9.0.0 | Iconografía |
+| @emotion/react | ^11.14.0 | CSS-in-JS (requerido por MUI) |
+| @emotion/styled | ^11.14.1 | CSS-in-JS (requerido por MUI) |
+| Axios | ^1.14.0 | Cliente HTTP |
+| React Router DOM | ^7.14.0 | Navegación / rutas |
+| Recharts | ^2.15.3 | Gráficas y analytics |
+| react-signature-canvas | ^1.1.0-alpha.2 | Firmas digitales |
+| react-markdown | ^10.1.0 | Renderizado Markdown (chatbot) |
+
+### Servicios Externos
+
+| Software | Versión | Rol |
+|---|---|---|
+| Ollama | (host) + gemma4:e4b | Chatbot IA con tool-calling y visión |
 
 ## 📦 Inicio Rápido
 
@@ -46,6 +75,7 @@ docker compose up --build
 # - Espera a PostgreSQL
 # - Corre migraciones
 # - Ejecuta collectstatic
+# - Inicia Gunicorn
 ```
 
 ### 3. Cargar datos de prueba
@@ -66,17 +96,18 @@ docker compose exec backend python manage.py createsuperuser
 
 | Servicio | URL | Descripción |
 |---|---|---|
-| **Frontend** | http://localhost | App React (producción via nginx) |
-| **Backend API** | http://localhost/api/ | Django REST API |
-| **Django Admin** | http://localhost/admin/ | Panel administrativo |
-| **Backend directo** | http://localhost:8000 | Django dev server (solo desarrollo) |
+| **Frontend** | http://localhost:8081 | App React (producción via nginx) |
+| **Backend API** | http://localhost:8081/api/ | Django REST API (proxy via nginx) |
+| **Django Admin** | http://localhost:8081/admin/ | Panel administrativo |
 | **Ollama** | http://localhost:11434 | Servidor LLM (debe correr en el host) |
+
+> **Nota:** El frontend se expone en el puerto **8081** para evitar conflictos con servicios existentes en el puerto 80. Puedes cambiarlo en `docker-compose.yml`.
 
 ## 📊 Datos de Prueba Incluidos
 
 El script `seed_data.py` genera:
 
-- **26 equipos** (laptops, desktops, servidores, impresoras, switches, routers, monitores, tablets)
+- **26 equipos** (laptops, desktops, servidores, impresoras, switches, routers, monitores, etc.)
   - 23 activos
   - 3 dados de baja
 - **40 mantenimientos** distribuidos en los últimos 12 meses
@@ -130,8 +161,8 @@ docker compose logs -f backend
 mantenimientos/
 ├── backend/
 │   ├── config/              # Settings, URLs principales
-│   ├── equipos/             # App de equipos
-│   ├── mantenimientos/      # App de mantenimientos
+│   ├── equipos/             # App de equipos (CRUD, CSV import/export, baja)
+│   ├── mantenimientos/      # App de mantenimientos (CRUD, PDF, CSV export, firmas, checklist, evidencias)
 │   ├── dashboard/           # App de métricas y analytics
 │   ├── usuarios/            # App de autenticación (JWT) y técnicos
 │   ├── chat/                # Chatbot IA (Ollama + tool-calling)
@@ -162,28 +193,40 @@ mantenimientos/
 
 ### Gestión de Equipos
 - ✅ Registro de equipos con código interno único
-- ✅ Clasificación por tipo (laptop, desktop, servidor, etc.)
+- ✅ Clasificación por tipo (laptop, desktop, servidor, impresora, switch, router, access point, UPS, monitor, otro)
 - ✅ Asignación a colaboradores
 - ✅ Control de fechas de mantenimiento
 - ✅ Proceso de baja con motivo y fecha
+- ✅ Importación masiva desde CSV
+- ✅ Exportación a CSV con filtros
 
 ### Mantenimientos
-- ✅ Creación de órdenes de mantenimiento
-- ✅ Checklist personalizable por categorías
-- ✅ Registro de actividades y materiales
-- ✅ Captura de firmas digitales (técnico + usuario)
-- ✅ Generación automática de PDF
-- ✅ Estados: borrador → pendiente firma técnico → pendiente firma usuario → completado
+- ✅ Creación de órdenes de mantenimiento (se guarda automáticamente como borrador)
+- ✅ Tipo de mantenimiento: preventivo, correctivo, diagnóstico u otro
+- ✅ Checklist técnico personalizable por categorías
+- ✅ Catálogos de actividades y materiales (selección por checkbox)
+- ✅ Captura de firmas digitales (técnico + usuario) con declaración de conformidad
+- ✅ Subida de evidencias fotográficas (antes, durante, después)
+- ✅ Generación automática de PDF (borrador con marca de agua, final sin ella)
+- ✅ Vista previa del PDF antes de completar el mantenimiento
+- ✅ Exportación a CSV con filtros (estatus, técnico, tipo, rango de fechas)
+- ✅ Filtros avanzados en listado: estatus, técnico, tipo de mantenimiento, rango de fechas
+- ✅ Chips de color por tipo de mantenimiento y estado del equipo
 
 ### Dashboard
 - ✅ Métricas clave (equipos activos, mantenimientos, próximos, vencidos)
 - ✅ Tabla de próximos mantenimientos
 - ✅ Historial de mantenimientos recientes
 
+### Próximos Mantenimientos
+- ✅ Vista de calendario con alcance de hasta 2 años
+- ✅ Alertas visuales para mantenimientos próximos y vencidos
+
 ### Analytics
 - ✅ Gráficas de mantenimientos por mes
 - ✅ Distribución por técnico y estatus
 - ✅ Métricas de riesgo
+- ✅ Filtros por rango de fechas
 
 ### Chatbot IA
 - ✅ Asistente conversacional con Ollama (gemma4:e4b)
@@ -198,11 +241,6 @@ mantenimientos/
 - ✅ Asignación a mantenimientos
 - ✅ Vista de carga de trabajo
 
-### Reportes
-- ✅ Historial con filtros avanzados
-- ✅ Próximos mantenimientos con alertas visuales
-- ✅ Exportación a PDF de cada mantenimiento
-
 ## 🔐 Seguridad
 
 - Autenticación JWT (access + refresh tokens)
@@ -210,8 +248,9 @@ mantenimientos/
 - CORS configurado para desarrollo
 - Django Secret Key rotable
 - PostgreSQL con credenciales configurables
+- Detección de navegador no-Chromium con banner informativo
 
-## � API Endpoints
+## 🔗 API Endpoints
 
 Todos bajo el prefijo `/api/`.
 
@@ -222,30 +261,45 @@ Todos bajo el prefijo `/api/`.
 | | `/api/auth/logout/` | POST | Invalidar refresh token |
 | | `/api/auth/me/` | GET | Usuario autenticado |
 | | `/api/auth/register/` | POST | Registrar nuevo usuario |
-| **Equipos** | `/api/equipos/` | GET/POST | CRUD de equipos (ViewSet) |
-| | `/api/equipos/{id}/` | GET/PUT/PATCH/DELETE | Detalle de equipo |
-| **Mantenimientos** | `/api/mantenimientos/` | GET/POST | CRUD de mantenimientos (ViewSet) |
-| | `/api/mantenimientos/{id}/` | GET/PUT/PATCH/DELETE | Detalle de mantenimiento |
-| | `/api/checklist-items/` | GET/POST | Items de checklist |
-| **Técnicos** | `/api/tecnicos/` | GET/POST | CRUD de técnicos (ViewSet) |
+| **Equipos** | `/api/equipos/` | GET/POST | Listado y creación de equipos |
+| | `/api/equipos/{id}/` | GET/PATCH | Detalle y edición de equipo |
+| | `/api/equipos/{id}/baja/` | POST | Dar de baja un equipo |
+| | `/api/equipos/{id}/mantenimientos/` | GET | Mantenimientos de un equipo |
+| | `/api/equipos/exportar-csv/` | GET | Exportar equipos a CSV |
+| | `/api/equipos/importar-csv/` | POST | Importar equipos desde CSV (multipart) |
+| **Mantenimientos** | `/api/mantenimientos/` | GET/POST | Listado y creación (filtros: `estatus`, `tecnico`, `tipo_mantenimiento`, `equipo`, `desde`, `hasta`) |
+| | `/api/mantenimientos/{id}/` | GET/PATCH | Detalle y edición |
+| | `/api/mantenimientos/{id}/cerrar/` | POST | Completar mantenimiento (valida datos, firmas, genera PDF final) |
+| | `/api/mantenimientos/{id}/generar-pdf/` | POST | Generar/regenerar PDF |
+| | `/api/mantenimientos/{id}/pdf/` | GET | Obtener URL del PDF |
+| | `/api/mantenimientos/{id}/checklist/` | GET/POST | Respuestas del checklist técnico |
+| | `/api/mantenimientos/{id}/firmas/` | GET/POST | Firmas (técnico y usuario) |
+| | `/api/mantenimientos/{id}/evidencias/` | GET/POST | Evidencias fotográficas |
+| | `/api/mantenimientos/{id}/evidencias/{eid}/` | DELETE | Eliminar evidencia |
+| | `/api/mantenimientos/exportar-csv/` | GET | Exportar mantenimientos a CSV |
+| | `/api/checklist-items/` | GET | Items de checklist activos |
+| | `/api/actividades-catalogo/` | GET | Catálogo de actividades |
+| | `/api/materiales-catalogo/` | GET | Catálogo de materiales |
+| **Técnicos** | `/api/tecnicos/` | GET/POST | CRUD de técnicos |
 | **Dashboard** | `/api/dashboard/resumen/` | GET | Métricas principales |
 | | `/api/dashboard/proximos-mantenimientos/` | GET | Próximos mantenimientos |
 | | `/api/dashboard/mantenimientos-realizados/` | GET | Mantenimientos recientes |
-| | `/api/analytics/` | GET | Datos para gráficas |
+| | `/api/analytics/` | GET | Datos para gráficas (filtros: `desde`, `hasta`) |
 | **Chatbot** | `/api/chat/` | POST | Conversación de texto |
 | | `/api/chat/imagen/` | POST | Análisis de imagen (multipart) |
 
-## �📝 Notas de Producción
+## 📝 Notas de Producción
 
 Para despliegue en producción:
 
 1. Cambiar `DJANGO_DEBUG=False` en `.env`
 2. Configurar `DJANGO_ALLOWED_HOSTS` con dominio real
 3. Usar secretos seguros (no los del `.env.example`)
-4. Configurar volumen persistente para `media/` (firmas y PDFs)
+4. Configurar volumen persistente para `media/` (firmas, evidencias y PDFs)
 5. Usar nginx con SSL/TLS
 6. Configurar backup automático de PostgreSQL
 7. Asegurar que Ollama esté accesible (`OLLAMA_URL`) y el modelo descargado
+8. El puerto de exposición se configura en `docker-compose.yml` (por defecto `8081:80`)
 
 ## 📞 Soporte
 
@@ -253,6 +307,7 @@ Para dudas o problemas:
 - Revisar logs: `docker compose logs -f`
 - Verificar estado: `docker compose ps`
 - Reiniciar servicios: `docker compose restart`
+- Rebuild completo: `docker compose up --build`
 - Documentación del chatbot: `CHATBOT_DOCS.md`
 
 ---
